@@ -32,10 +32,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         if let button = statusItem.button {
-            let image = NSImage(
-                systemSymbolName: "signature",
-                accessibilityDescription: "Personal Signature — click to open"
-            )
+            // macOS automatically treats images ending with "Template" as template images
+            // (meaning it will color them black/white automatically based on Light/Dark mode).
+            let image = NSImage(named: "MenuBarIconTemplate")
             image?.isTemplate = true
             button.image = image
             button.action = #selector(togglePopover(_:))

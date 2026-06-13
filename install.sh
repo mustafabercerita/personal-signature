@@ -137,9 +137,12 @@ bundle() {
     cp "$BINARY_PATH" "${macos_dir}/${APP_NAME}"
     chmod +x "${macos_dir}/${APP_NAME}"
 
-    # Copy AppIcon.icns
+    # Copy AppIcon.icns and MenuBarIcon
     if [[ -f "PersonalSignature/Resources/AppIcon.icns" ]]; then
         cp "PersonalSignature/Resources/AppIcon.icns" "${contents}/Resources/"
+    fi
+    if [[ -f "PersonalSignature/Resources/MenuBarIconTemplate.png" ]]; then
+        cp "PersonalSignature/Resources/MenuBarIconTemplate.png" "${contents}/Resources/"
     fi
 
     # Write Info.plist

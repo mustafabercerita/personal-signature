@@ -78,6 +78,8 @@ bundle: build
 	@chmod +x "$(BUNDLE)/Contents/MacOS/$(APP_NAME)"
 	@[ -f "PersonalSignature/Resources/AppIcon.icns" ] && \
 		cp "PersonalSignature/Resources/AppIcon.icns" "$(BUNDLE)/Contents/Resources/" || true
+	@[ -f "PersonalSignature/Resources/MenuBarIconTemplate.png" ] && \
+		cp "PersonalSignature/Resources/MenuBarIconTemplate.png" "$(BUNDLE)/Contents/Resources/" || true
 	@# Generate Info.plist inline
 	@/usr/libexec/PlistBuddy -c "Add :LSUIElement bool true" \
 		"$(BUNDLE)/Contents/Info.plist" 2>/dev/null || true

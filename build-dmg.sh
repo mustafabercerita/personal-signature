@@ -136,6 +136,9 @@ bundle() {
     if [[ -f "PersonalSignature/Resources/AppIcon.icns" ]]; then
         cp "PersonalSignature/Resources/AppIcon.icns" "${contents}/Resources/"
     fi
+    if [[ -f "PersonalSignature/Resources/MenuBarIconTemplate.png" ]]; then
+        cp "PersonalSignature/Resources/MenuBarIconTemplate.png" "${contents}/Resources/"
+    fi
 
     cat > "${contents}/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
