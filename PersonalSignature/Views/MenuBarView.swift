@@ -50,13 +50,11 @@ struct MenuBarView: View {
 private struct HeaderView: View {
     var body: some View {
         HStack(spacing: 8) {
-            if let img = NSImage(named: "MenuBarIconTemplate") {
+            if let img = NSImage(named: "AppIcon") {
                 Image(nsImage: img)
-                    .renderingMode(.template)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 16, height: 16)
-                    .foregroundColor(.accentColor)
+                    .frame(width: 18, height: 18)
                     .accessibilityHidden(true)
             } else {
                 Image(systemName: "signature")
@@ -302,6 +300,7 @@ private struct EmptyStateView: View {
                             Image(systemName: "tray.and.arrow.down.fill")
                                 .font(.system(size: 48, weight: .light))
                                 .foregroundColor(.accentColor)
+                                .opacity(0.6)
                         } else {
                             if let img = NSImage(named: "AppIcon") {
                                 Image(nsImage: img)
@@ -312,10 +311,10 @@ private struct EmptyStateView: View {
                                 Image(systemName: "signature")
                                     .font(.system(size: 48, weight: .light))
                                     .foregroundColor(.accentColor)
+                                    .opacity(0.6)
                             }
                         }
                     }
-                    .opacity(0.6)
                     .animation(.easeOut(duration: 0.15), value: isDropTargeted)
 
                     Text(isDropTargeted ? "Drop to add signature" : "No signature saved yet.")
