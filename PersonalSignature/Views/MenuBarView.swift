@@ -303,13 +303,11 @@ private struct EmptyStateView: View {
                                 .font(.system(size: 48, weight: .light))
                                 .foregroundColor(.accentColor)
                         } else {
-                            if let img = NSImage(named: "MenuBarIconTemplate") {
+                            if let img = NSImage(named: "AppIcon") {
                                 Image(nsImage: img)
-                                    .renderingMode(.template)
                                     .resizable()
                                     .scaledToFit()
-                                    .frame(width: 56, height: 56)
-                                    .foregroundColor(.accentColor)
+                                    .frame(width: 80, height: 80)
                             } else {
                                 Image(systemName: "signature")
                                     .font(.system(size: 48, weight: .light))
@@ -462,9 +460,16 @@ private struct AboutView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                Image(systemName: "signature")
-                    .font(.system(size: 28, weight: .light))
-                    .foregroundColor(.accentColor)
+                if let img = NSImage(named: "AppIcon") {
+                    Image(nsImage: img)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 36, height: 36)
+                } else {
+                    Image(systemName: "signature")
+                        .font(.system(size: 28, weight: .light))
+                        .foregroundColor(.accentColor)
+                }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Personal Signature")
                         .font(.headline)
