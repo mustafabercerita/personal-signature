@@ -44,6 +44,7 @@ SOURCE_FILES=(
     "PersonalSignature/Views/MenuBarView.swift"
     "PersonalSignature/Views/Components.swift"
     "PersonalSignature/Utilities/EventMonitor.swift"
+    "PersonalSignature/Utilities/GlobalShortcutManager.swift"
 )
 
 # ── Help ──────────────────────────────────────────────────────────────────────

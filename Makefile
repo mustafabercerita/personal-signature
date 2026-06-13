@@ -19,29 +19,8 @@ TARGET       := $(ARCH)-apple-macosx$(MIN_MACOS)
 SDK          := $(shell xcrun --show-sdk-path)
 
 BUILD_DIR    := .build
-BINARY       := $(BUILD_DIR)/$(APP_NAME)
-BUNDLE       := $(BUILD_DIR)/$(APP_NAME).app
 INSTALL_DIR  := $(HOME)/Applications
 INSTALLED    := $(INSTALL_DIR)/$(APP_NAME).app
-
-SOURCES := \
-	PersonalSignature/App/PersonalSignatureApp.swift \
-	PersonalSignature/App/AppDelegate.swift \
-	PersonalSignature/Models/SignatureManager.swift \
-	PersonalSignature/Views/MenuBarView.swift \
-	PersonalSignature/Views/Components.swift \
-	PersonalSignature/Utilities/EventMonitor.swift
-
-SWIFTFLAGS := \
-	-sdk $(SDK) \
-	-target $(TARGET) \
-	-parse-as-library \
-	-O \
-	-whole-module-optimization \
-	-framework AppKit \
-	-framework SwiftUI \
-	-framework ServiceManagement \
-	-framework UniformTypeIdentifiers
 
 .DEFAULT_GOAL := install
 
@@ -61,10 +40,10 @@ help:
 	@echo ""
 
 ## 1. Compile
-build: $(BUILD_DIR)
-	@echo "▶ Compiling $(APP_NAME) v$(VERSION) for $(TARGET)..."
-	@swiftc $(SWIFTFLAGS) -o "$(BINARY)" $(SOURCES)
-	@echo "✅ Compiled → $(BINARY)"
+build:
+	@echo "▶ Compiling $(APP_NAME) v$(VERSION)..."
+	@swift build -c release --arch arm64 --arch x86_64
+	@echo "✅ Compiled"
 
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
@@ -72,10 +51,18 @@ $(BUILD_DIR):
 ## 2. Bundle
 bundle: build
 	@echo "▶ Creating .app bundle..."
+	$(eval BUNDLE := $(BUILD_DIR)/$(APP_NAME).app)
+	$(eval BIN_PATH := $(shell swift build -c release --arch arm64 --arch x86_64 --show-bin-path))
 	@rm -rf "$(BUNDLE)"
 	@mkdir -p "$(BUNDLE)/Contents/MacOS" "$(BUNDLE)/Contents/Resources"
-	@cp "$(BINARY)" "$(BUNDLE)/Contents/MacOS/$(APP_NAME)"
+	@cp "$(BIN_PATH)/PersonalSignatureApp" "$(BUNDLE)/Contents/MacOS/$(APP_NAME)"
 	@chmod +x "$(BUNDLE)/Contents/MacOS/$(APP_NAME)"
+	
+	@# Copy Sparkle.framework if it exists in the build output
+	@[ -d "$(BIN_PATH)/Sparkle.framework" ] && \
+		mkdir -p "$(BUNDLE)/Contents/Frameworks" && \
+		cp -R "$(BIN_PATH)/Sparkle.framework" "$(BUNDLE)/Contents/Frameworks/" || true
+
 	@[ -f "PersonalSignature/Resources/AppIcon.icns" ] && \
 		cp "PersonalSignature/Resources/AppIcon.icns" "$(BUNDLE)/Contents/Resources/" || true
 	@[ -f "PersonalSignature/Resources/MenuBarIconTemplate.png" ] && \
@@ -107,13 +94,17 @@ EOF
 
 ## 3. Sign (ad-hoc)
 sign: bundle
-	@echo "▶ Signing (ad-hoc)..."
+	@echo "▶ Signing frameworks and app (ad-hoc)..."
+	$(eval BUNDLE := $(BUILD_DIR)/$(APP_NAME).app)
+	@[ -d "$(BUNDLE)/Contents/Frameworks/Sparkle.framework" ] && \
+		codesign --sign - --force --deep --timestamp=none "$(BUNDLE)/Contents/Frameworks/Sparkle.framework" 2>&1 | grep -v "^$$" || true
 	@codesign --sign - --force --deep --timestamp=none "$(BUNDLE)" 2>&1 | grep -v "^$$" || true
 	@echo "✅ Signed"
 
 ## 4. Install
 install: sign
 	@echo "▶ Installing to $(INSTALL_DIR)..."
+	$(eval BUNDLE := $(BUILD_DIR)/$(APP_NAME).app)
 	@mkdir -p "$(INSTALL_DIR)"
 	@-pkill -x "Personal Signature" 2>/dev/null; sleep 0.3; true
 	@rm -rf "$(INSTALLED)"

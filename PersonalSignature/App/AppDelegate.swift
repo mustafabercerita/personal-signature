@@ -71,25 +71,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Global Hotkey (⌥⌘S)
 
     private func setupGlobalHotkey() {
-        globalHotkeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            // ⌥⌘S — Option + Command + S
-            let optionCommand: NSEvent.ModifierFlags = [.option, .command]
-            guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == optionCommand,
-                  event.charactersIgnoringModifiers?.lowercased() == "s" else { return }
-
+        GlobalShortcutManager.shared.action = { [weak self] in
             let copied = self?.signatureManager.copySignatureToClipboard() ?? false
             if !copied && self?.signatureManager.signatureImage == nil {
                 // No signature yet — open popover to let user add one
-                DispatchQueue.main.async { self?.openPopover() }
+                self?.openPopover()
             }
         }
     }
 
     private func teardownGlobalHotkey() {
-        if let monitor = globalHotkeyMonitor {
-            NSEvent.removeMonitor(monitor)
-            globalHotkeyMonitor = nil
-        }
+        // Handled automatically by system on app exit, or could add an unregister method
     }
 
     // MARK: - Popover Control
