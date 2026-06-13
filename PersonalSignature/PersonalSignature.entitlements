@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Sandbox: on for App Store distribution.
+         For local development / direct distribution, you can disable sandboxing
+         by deleting this file and removing CODE_SIGN_ENTITLEMENTS from build settings. -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+
+    <!-- Required to open files via NSOpenPanel / fileImporter -->
+    <key>com.apple.security.files.user-selected.read-only</key>
+    <true/>
+
+    <!-- Write access to Application Support to persist the signature -->
+    <key>com.apple.security.files.downloads.read-write</key>
+    <false/>
+</dict>
+</plist>

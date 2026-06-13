@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Hide from Dock and app switcher — menu-bar-only agent -->
+    <key>LSUIElement</key>
+    <true/>
+
+    <!-- App metadata -->
+    <key>CFBundleIdentifier</key>
+    <string>com.personalsignature.app</string>
+    <key>CFBundleName</key>
+    <string>Personal Signature</string>
+    <key>CFBundleDisplayName</key>
+    <string>Personal Signature</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleExecutable</key>
+    <string>PersonalSignature</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+
+    <!-- macOS deployment target -->
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+
+    <!-- No main Storyboard — we build UI programmatically -->
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+
+    <!-- Privacy descriptions (required for file access) -->
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>Personal Signature needs access to read your signature file.</string>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>Personal Signature needs access to read your signature file.</string>
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>Personal Signature needs access to read your signature file.</string>
+</dict>
+</plist>
