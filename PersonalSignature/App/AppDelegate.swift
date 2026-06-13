@@ -20,10 +20,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupPopover()
         setupEventMonitor()
         setupGlobalHotkey()
+        
+        NotificationCenter.default.addObserver(forName: NSNotification.Name("ClosePopover"), object: nil, queue: .main) { [weak self] _ in
+            self?.closePopover()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         teardownGlobalHotkey()
+        NotificationCenter.default.removeObserver(self)
     }
 
     // MARK: - Status Item

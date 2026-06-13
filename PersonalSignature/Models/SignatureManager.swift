@@ -115,6 +115,9 @@ final class SignatureManager: ObservableObject {
 
         if success {
             showToast("Signature copied to clipboard ✓")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                NotificationCenter.default.post(name: NSNotification.Name("ClosePopover"), object: nil)
+            }
         } else {
             showToast("Failed to copy — try again.")
         }

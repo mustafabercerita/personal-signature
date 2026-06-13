@@ -112,12 +112,18 @@ private struct SignatureActiveView: View {
                     .animation(.easeOut(duration: 0.15), value: isDropTargeted)
 
                 if let img = manager.signatureImage {
-                    Image(nsImage: img)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: 240, maxHeight: 100)
-                        .padding(12)
-                        .accessibilityLabel("Current signature preview")
+                    Button(action: {
+                        manager.copySignatureToClipboard()
+                    }) {
+                        Image(nsImage: img)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: 240, maxHeight: 100)
+                            .padding(12)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Current signature preview. Click to copy.")
                 }
 
                 // Drop hint overlay
@@ -155,9 +161,20 @@ private struct SignatureActiveView: View {
             Button(action: {
                 manager.copySignatureToClipboard()
             }) {
-                Label("Sign", systemImage: "doc.on.clipboard")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 9)
+                HStack {
+                    Image(systemName: "doc.on.clipboard")
+                    Text("Sign")
+                    Spacer()
+                    Text("⌥⌘S")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.7))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.white.opacity(0.2)))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
             }
             .buttonStyle(PrimaryButtonStyle())
             .padding(.horizontal, 14)
