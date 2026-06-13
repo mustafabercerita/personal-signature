@@ -66,7 +66,20 @@ Install app → 🖊 icon appears in menu bar → click icon
 
 ## Getting Started
 
-### Option A — One-command install (no Xcode GUI needed) ⚡
+### Option A — Download App (.dmg) 📦
+
+This is the easiest way to install.
+
+1. Go to the [Releases](https://github.com/mustafabercerita/personal-signature/releases) page.
+2. Download `PersonalSignature-1.0.0.dmg`.
+3. Open the downloaded file and drag the **Personal Signature** icon into the **Applications** folder.
+4. Launch from your Applications folder.
+
+> **Note**: Because this is an open-source app signed ad-hoc, you may need to right-click the app and choose **Open** the first time you run it to bypass macOS Gatekeeper.
+
+---
+
+### Option B — One-command CLI install ⚡
 
 ```bash
 git clone https://github.com/mustafabercerita/personal-signature.git
@@ -103,7 +116,7 @@ make uninstall
 
 ---
 
-### Option B — Build with Xcode
+### Option C — Build with Xcode
 
 1. Clone the repo and open `PersonalSignature.xcodeproj` in Xcode 15+
 2. Select the **PersonalSignature** target → **Signing & Capabilities** → set your Team
