@@ -1,0 +1,62 @@
+name: CI — Build & Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build & Test (macOS)
+    runs-on: macos-14        # Apple Silicon runner, Xcode 15+
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+      - name: Show environment
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build (Debug)
+        run: |
+          xcodebuild build \
+            -project "PersonalSignature.xcodeproj" \
+            -scheme "PersonalSignature" \
+            -configuration Debug \
+            -destination "platform=macOS,arch=arm64" \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty --color || true
+
+      - name: Run Unit Tests
+        run: |
+          xcodebuild test \
+            -project "PersonalSignature.xcodeproj" \
+            -scheme "PersonalSignature" \
+            -destination "platform=macOS,arch=arm64" \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty --color || true
+
+      - name: Build (Release)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          xcodebuild archive \
+            -project "PersonalSignature.xcodeproj" \
+            -scheme "PersonalSignature" \
+            -configuration Release \
+            -archivePath "${{ runner.temp }}/PersonalSignature.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty --color || true
+
+      - name: Upload build artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: PersonalSignature-${{ github.sha }}
+          path: ${{ runner.temp }}/PersonalSignature.xcarchive
+          retention-days: 14

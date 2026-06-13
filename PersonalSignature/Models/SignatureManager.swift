@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import ServiceManagement
 
 /// Persists and vends the active signature image.
 /// Storage: the PNG is copied into ~/Library/Application Support/PersonalSignature/signature.png
@@ -11,13 +12,17 @@ final class SignatureManager: ObservableObject {
 
     @Published private(set) var signatureImage: NSImage?
     @Published var toastMessage: String?
+    @Published var launchAtLogin: Bool = false
 
     private var toastTimer: Timer?
 
     // MARK: - Paths
 
     private let storageDirectory: URL = {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let appSupport = FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first!
         let dir = appSupport.appendingPathComponent("PersonalSignature", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
@@ -31,6 +36,7 @@ final class SignatureManager: ObservableObject {
 
     private init() {
         loadSignature()
+        loadLaunchAtLoginState()
     }
 
     // MARK: - Load
@@ -41,49 +47,75 @@ final class SignatureManager: ObservableObject {
         signatureImage = img
     }
 
+    private func loadLaunchAtLoginState() {
+        if #available(macOS 13.0, *) {
+            launchAtLogin = SMAppService.mainApp.status == .enabled
+        }
+    }
+
     // MARK: - Save
 
-    /// Copies the user-chosen PNG file into the app's storage directory.
+    /// Copies the user-chosen image file into the app's storage directory (re-encoded as PNG).
     func saveSignature(from sourceURL: URL) throws {
-        let dest = signaturePath
-
-        // Validate it's actually a PNG
         guard let img = NSImage(contentsOf: sourceURL) else {
             throw SignatureError.invalidImage
         }
 
-        // Re-encode as PNG to guarantee format
         guard let tiff = img.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiff),
               let pngData = bitmap.representation(using: .png, properties: [:]) else {
             throw SignatureError.encodingFailed
         }
 
-        try pngData.write(to: dest, options: .atomic)
+        try pngData.write(to: signaturePath, options: .atomic)
 
-        DispatchQueue.main.async {
-            self.signatureImage = img
+        DispatchQueue.main.async { [weak self] in
+            self?.signatureImage = img
         }
     }
 
     // MARK: - Copy to Clipboard
 
-    func copySignatureToClipboard() {
-        guard let image = signatureImage else { return }
+    @discardableResult
+    func copySignatureToClipboard() -> Bool {
+        guard let image = signatureImage else { return false }
 
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        pasteboard.writeObjects([image])
+        let success = pasteboard.writeObjects([image])
 
-        showToast("Signature copied to clipboard ✓")
+        if success {
+            showToast("Signature copied to clipboard ✓")
+        } else {
+            showToast("Failed to copy — try again.")
+        }
+        return success
     }
 
     // MARK: - Delete
 
     func deleteSignature() {
         try? FileManager.default.removeItem(at: signaturePath)
-        DispatchQueue.main.async {
-            self.signatureImage = nil
+        DispatchQueue.main.async { [weak self] in
+            self?.signatureImage = nil
+        }
+    }
+
+    // MARK: - Launch at Login
+
+    func setLaunchAtLogin(_ enabled: Bool) {
+        guard #available(macOS 13.0, *) else { return }
+        do {
+            if enabled {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+            DispatchQueue.main.async { [weak self] in
+                self?.launchAtLogin = enabled
+            }
+        } catch {
+            showToast("Could not change login item: \(error.localizedDescription)")
         }
     }
 
@@ -91,10 +123,13 @@ final class SignatureManager: ObservableObject {
 
     func showToast(_ message: String) {
         toastTimer?.invalidate()
-        DispatchQueue.main.async {
-            self.toastMessage = message
-            self.toastTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { [weak self] _ in
-                withAnimation(.easeOut(duration: 0.3)) {
+        DispatchQueue.main.async { [weak self] in
+            self?.toastMessage = message
+            self?.toastTimer = Timer.scheduledTimer(
+                withTimeInterval: 2.5,
+                repeats: false
+            ) { [weak self] _ in
+                DispatchQueue.main.async {
                     self?.toastMessage = nil
                 }
             }
@@ -110,8 +145,8 @@ enum SignatureError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidImage:    return "The selected file is not a valid image."
-        case .encodingFailed:  return "Failed to process the image file."
+        case .invalidImage:   return "The selected file is not a valid image."
+        case .encodingFailed: return "Failed to process the image. Try a different file."
         }
     }
 }
