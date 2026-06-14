@@ -1,4 +1,7 @@
-# Personal Signature 🖊️
+<div align="center">
+<img src="Logo/Personal%20Signature%20Logo.png" width="150" height="150" alt="Logo">
+<h1>Personal Signature</h1>
+</div>
 
 > A lightweight macOS menu bar app that puts your digital signature one click away.
 
@@ -19,7 +22,7 @@ Every time you need to sign a document — Word, Excel, Google Docs, a PDF edito
 3. Copy the image
 4. Paste it into the document
 
-**Personal Signature eliminates steps 1–3.** Your signature lives in the menu bar, one click away.
+**Personal Signature eliminates steps 1–3.** Your signature lives in the menu bar, one click away. With the new Auto-Paste feature, it even eliminates step 4!
 
 ---
 
@@ -29,9 +32,9 @@ Every time you need to sign a document — Word, Excel, Google Docs, a PDF edito
 Install app → 🖊 icon appears in menu bar → click icon
 → Add Signature (choose PNG or drag & drop)
 → preview thumbnail shows in popover
-→ click [Sign] — or press ⌥⌘S from anywhere
-→ "Signature copied to clipboard ✓"
-→ ⌘V in Word / Google Docs / PDF / email → done.
+→ press ⌥⌘S from anywhere
+→ "Signature copied & pasted ✓"
+→ Signature is automatically pasted into your active document!
 ```
 
 ---
@@ -40,19 +43,19 @@ Install app → 🖊 icon appears in menu bar → click icon
 
 | Feature | Description |
 |---|---|
-| **Menu bar icon** | Lives quietly in the macOS menu bar — no Dock icon |
-| **Add Signature** | Pick a PNG / JPEG / TIFF via file picker |
-| **Drag & Drop** | Drag an image file directly onto the popover |
+| **Menu-bar-only architecture** | Lives quietly in the macOS menu bar — no Dock icon |
+| **Global hotkey ⌥⌘S** | Copy and paste your signature without even opening the popover |
+| **Auto-Paste Functionality** | Automatically pastes the signature into your active application |
+| **Accessibility Permissions** | Seamlessly prompts for and handles accessibility access needed for auto-paste |
+| **Native Auto-Updater** | Built-in GitHub Releases auto-updater to keep you on the latest version |
+| **Drag & Drop** | Drag an image file directly onto the popover to set your signature |
 | **Live preview** | Thumbnail of the active signature in the popover |
 | **One-click Sign** | Copies signature image to clipboard instantly |
-| **Global hotkey ⌥⌘S** | Copy signature without even opening the popover |
 | **Change Signature** | Swap active signature at any time |
 | **Remove Signature** | Delete saved signature with confirmation |
 | **Launch at Login** | Toggle auto-start via `SMAppService` |
-| **Toast feedback** | "Signature copied to clipboard ✓" animated notification |
-| **About panel** | Version info, GitHub link, keyboard shortcut hint |
 | **Persistent storage** | Signature survives app restarts (stored locally) |
-| **Zero dependencies** | Pure Swift / SwiftUI / AppKit — no Electron, no backend |
+| **Zero third-party dependencies** | Pure Swift / SwiftUI / AppKit — no Sparkle, no Electron, no backend |
 
 ---
 
@@ -130,7 +133,8 @@ make uninstall
 2. Click **Add Signature** (or drag a PNG file onto the popover)
 3. Preview appears immediately
 4. Click **Sign** (or press **⌥⌘S** from anywhere) to copy to clipboard
-5. **⌘V** anywhere — done
+5. The app will prompt you for Accessibility Permissions the first time you use Auto-Paste.
+6. Once granted, **⌥⌘S** will automatically copy AND paste the signature wherever your text cursor is active.
 
 ---
 
@@ -138,7 +142,7 @@ make uninstall
 
 | Shortcut | Action |
 |---|---|
-| **⌥⌘S** | Copy signature to clipboard (global — works without opening popover) |
+| **⌥⌘S** | Copy & Paste signature to active application (global — works without opening popover) |
 | **⌘Q** | Quit the app |
 | **Return** | Sign (when popover is open) |
 | **Escape** | Close popover |
@@ -169,14 +173,16 @@ Personal Signature/
 │   │   └── Components.swift             PrimaryButtonStyle, SecondaryButtonStyle, ToastView
 │   │
 │   ├── Utilities/
-│   │   └── EventMonitor.swift           Outside-click detection
+│   │   ├── EventMonitor.swift           Outside-click detection
+│   │   ├── AutoUpdater.swift            Native GitHub Releases updater
+│   │   └── AccessibilityPermissions.swift Accessibility check & prompt
 │   │
 │   └── Resources/
 │       ├── Info.plist                   LSUIElement, bundle metadata
 │       └── Assets.xcassets/            AppIcon + AccentColor
 │
 ├── PersonalSignatureTests/
-│   └── SignatureManagerTests.swift      7 unit tests
+│   └── SignatureManagerTests.swift      Unit tests
 │
 ├── README.md
 ├── ARCHITECTURE.md
@@ -191,37 +197,16 @@ Personal Signature/
 
 In Xcode: **⌘U** or **Product → Test**
 
-Tests cover:
-- `testInitialStateHasNoSignature`
-- `testSaveValidPNGLoadsImage`
-- `testSaveInvalidPathThrowsError`
-- `testDeleteSignatureClearsImage`
-- `testCopyToClipboardReturnsFalseWithNoSignature`
-- `testCopyToClipboardReturnsTrueWithSignature`
-- `testToastMessageClearsAfterDelay`
-- `testReplacingSignatureUpdatesImage`
+Or via CLI:
+```bash
+xcodebuild -project PersonalSignature.xcodeproj -scheme PersonalSignature -destination 'platform=macOS' test
+```
 
 ---
 
 ## Architecture
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for a full technical walkthrough.
-
-**TL;DR:**
-
-```
-AppDelegate
-  ├─ NSStatusItem → NSPopover → NSHostingController<MenuBarView>
-  │                                 └─ SignatureManager (@EnvironmentObject)
-  │                                       ├─ @Published signatureImage: NSImage?
-  │                                       ├─ @Published toastMessage: String?
-  │                                       ├─ @Published launchAtLogin: Bool
-  │                                       ├─ saveSignature(from:)  → disk
-  │                                       ├─ copySignatureToClipboard() → NSPasteboard
-  │                                       ├─ deleteSignature()
-  │                                       └─ setLaunchAtLogin(_:) → SMAppService
-  └─ Global hotkey monitor (⌥⌘S) → copySignatureToClipboard()
-```
 
 ---
 
