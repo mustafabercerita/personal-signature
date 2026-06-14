@@ -22,6 +22,9 @@ versioning follows [Semantic Versioning](https://semver.org/).
 - **Background removal** — correctly drops white backgrounds while preserving original ink color
 - **Memory leaks** — fixed memory leaks in the popover and signature processing
 - **Drag and Drop** — fixed issues where drag & drop was not working reliably
+- **Windows Memory Leaks** — fixed a memory leak in the Windows app where global shortcuts registered multiple event handlers to the UI thread dispatcher
+- **Windows UI Issues** — fixed a UI flashing issue on startup in the Windows app
+- **Windows Performance** — dramatically improved image processing performance for background removal in the Windows app by replacing GetPixel/SetPixel with LockBits
 
 ### Technical
 - **Modular UI Refactoring** — split `MenuBarView` into `HeaderView`, `SignatureActiveView`, `FooterView`, `EmptyStateView`, `DrawingView`, and `AboutView` for better maintainability

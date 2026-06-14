@@ -12,23 +12,44 @@ namespace PersonalSignatureWPF
         {
             Bitmap result = new Bitmap(original.Width, original.Height);
             
-            for (int y = 0; y < original.Height; y++)
+            Rectangle rect = new Rectangle(0, 0, original.Width, original.Height);
+            System.Drawing.Imaging.BitmapData bmpData = result.LockBits(rect, System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            System.Drawing.Imaging.BitmapData origData = original.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            
+            int bytes = Math.Abs(bmpData.Stride) * original.Height;
+            byte[] rgbValues = new byte[bytes];
+            byte[] origValues = new byte[bytes];
+            
+            Marshal.Copy(origData.Scan0, origValues, 0, bytes);
+            
+            for (int counter = 0; counter < rgbValues.Length; counter += 4)
             {
-                for (int x = 0; x < original.Width; x++)
+                byte b = origValues[counter];
+                byte g = origValues[counter + 1];
+                byte r = origValues[counter + 2];
+                byte a = origValues[counter + 3];
+                
+                if (r > 200 && g > 200 && b > 200)
                 {
-                    Color pixelColor = original.GetPixel(x, y);
-                    
-                    // Simple threshold for "white"
-                    if (pixelColor.R > 200 && pixelColor.G > 200 && pixelColor.B > 200)
-                    {
-                        result.SetPixel(x, y, Color.Transparent);
-                    }
-                    else
-                    {
-                        result.SetPixel(x, y, pixelColor);
-                    }
+                    rgbValues[counter] = 0;
+                    rgbValues[counter + 1] = 0;
+                    rgbValues[counter + 2] = 0;
+                    rgbValues[counter + 3] = 0;
+                }
+                else
+                {
+                    rgbValues[counter] = b;
+                    rgbValues[counter + 1] = g;
+                    rgbValues[counter + 2] = r;
+                    rgbValues[counter + 3] = a;
                 }
             }
+            
+            Marshal.Copy(rgbValues, 0, bmpData.Scan0, bytes);
+            
+            original.UnlockBits(origData);
+            result.UnlockBits(bmpData);
+            
             return result;
         }
 

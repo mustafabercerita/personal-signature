@@ -13,6 +13,7 @@ public partial class App : Application
     {
         base.OnStartup(e);
         notifyIcon = (TaskbarIcon)FindResource("NotifyIcon");
+        MainWindow = new MainWindow();
     }
 
     private void NotifyIcon_TrayLeftMouseUp(object sender, RoutedEventArgs e)

@@ -24,6 +24,12 @@ namespace PersonalSignatureWPF
 
         public void RegisterShortcut(int id, uint modifiers, uint key)
         {
+            if (_hotKeyId != 0)
+            {
+                UnregisterHotKey(_hWnd, _hotKeyId);
+                ComponentDispatcher.ThreadPreprocessMessage -= ThreadPreprocessMessageMethod;
+            }
+
             _hotKeyId = id;
             RegisterHotKey(_hWnd, id, modifiers, key);
             ComponentDispatcher.ThreadPreprocessMessage += ThreadPreprocessMessageMethod;
