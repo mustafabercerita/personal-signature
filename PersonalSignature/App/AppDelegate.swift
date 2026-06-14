@@ -24,6 +24,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(forName: NSNotification.Name("ClosePopover"), object: nil, queue: .main) { [weak self] _ in
             self?.closePopover()
         }
+        
+        NotificationCenter.default.addObserver(forName: NSNotification.Name("CheckForUpdates"), object: nil, queue: .main) { [weak self] _ in
+            self?.checkForUpdates()
+        }
     }
 
     func checkForUpdates() {

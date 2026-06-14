@@ -475,9 +475,7 @@ private struct FooterView: View {
             // Row 3: Action Buttons
             HStack {
                 Button("Check for Updates") {
-                    if let appDelegate = NSApp.delegate as? AppDelegate {
-                        appDelegate.checkForUpdates()
-                    }
+                    NotificationCenter.default.post(name: NSNotification.Name("CheckForUpdates"), object: nil)
                 }
                 .buttonStyle(.plain)
                 .font(.caption)
