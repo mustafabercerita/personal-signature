@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSSupportsAutomaticTermination</key>
+    <true/>
+    <key>NSSupportsSuddenTermination</key>
+    <true/>
+    <key>SUFeedURL</key>
+    <string>https://example.com/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>placeholder</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.personalsignature.app</string>
+    <key>CFBundleName</key>
+    <string>Personal Signature</string>
+    <key>CFBundleDisplayName</key>
+    <string>Personal Signature</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleExecutable</key>
+    <string>Personal Signature</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>Personal Signature needs access to read your signature file.</string>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>Personal Signature needs access to read your signature file.</string>
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>Personal Signature needs access to read your signature file.</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2024 Personal Signature Contributors. MIT License.</string>
+</dict>
+</plist>

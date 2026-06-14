@@ -86,7 +86,7 @@ This is the easiest way to install.
 
 ```bash
 git clone https://github.com/mustafabercerita/personal-signature.git
-cd personal-signature
+cd personal-signature/macos
 ./install.sh
 ```
 
@@ -121,7 +121,7 @@ make uninstall
 
 ### Option C — Build with Xcode
 
-1. Clone the repo and open `PersonalSignature.xcodeproj` in Xcode 15+
+1. Clone the repo and open `macos/PersonalSignature.xcodeproj` in Xcode 15+
 2. Select the **PersonalSignature** target → **Signing & Capabilities** → set your Team
 3. Press **⌘R**. Look for the **🖊 icon** in your menu bar.
 
@@ -155,46 +155,28 @@ make uninstall
 Personal Signature/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml                   # GitHub Actions CI (build + test + archive)
+│       └── ci.yml                   # GitHub Actions CI
 │
-├── PersonalSignature.xcodeproj/
-│   └── project.pbxproj
+├── macos/                           # macOS App (Swift / SwiftUI)
+│   ├── PersonalSignature.xcodeproj/
+│   ├── PersonalSignature/
+│   │   ├── App/                     # Entry point & AppDelegate
+│   │   ├── Models/                  # Business logic & clipboard
+│   │   ├── Views/                   # SwiftUI UI components
+│   │   ├── Utilities/               # Permissions, updater
+│   │   └── Resources/               # Assets, Plist
+│   ├── PersonalSignatureTests/
+│   ├── install.sh                   # macOS CLI installer
+│   ├── build-dmg.sh                 # macOS DMG builder
+│   ├── Package.swift                # macOS Package definition
+│   └── Makefile                     # macOS Build scripts
 │
-├── PersonalSignature/
-│   ├── App/
-│   │   ├── PersonalSignatureApp.swift   @main entry point
-│   │   └── AppDelegate.swift            NSStatusItem + NSPopover + global hotkey
-│   │
-│   ├── Models/
-│   │   └── SignatureManager.swift       All business logic + persistence + clipboard
-│   │
-│   ├── Views/
-│   │   ├── MenuBarView.swift            Root SwiftUI popover view
-│   │   ├── HeaderView.swift             Title and signature selector
-│   │   ├── SignatureActiveView.swift    Main preview and actions
-│   │   ├── EmptyStateView.swift         Drop zone and add button
-│   │   ├── FooterView.swift             Bottom toolbar (About, Drawing)
-│   │   ├── DrawingView.swift            Built-in canvas for drawing signature
-│   │   ├── AboutView.swift              App info and version
-│   │   └── Components.swift             PrimaryButtonStyle, SecondaryButtonStyle, ToastView
-│   │
-│   ├── Utilities/
-│   │   ├── EventMonitor.swift           Outside-click detection
-│   │   ├── AutoUpdater.swift            Native GitHub Releases updater
-│   │   └── AccessibilityPermissions.swift Accessibility check & prompt
-│   │
-│   └── Resources/
-│       ├── Info.plist                   LSUIElement, bundle metadata
-│       └── Assets.xcassets/            AppIcon + AccentColor
-│
-├── PersonalSignatureTests/
-│   └── SignatureManagerTests.swift      Unit tests
+├── windows/                         # Windows App (Upcoming)
 │
 ├── README.md
 ├── ARCHITECTURE.md
 ├── CHANGELOG.md
-├── LICENSE (MIT)
-└── .gitignore
+└── LICENSE (MIT)
 ```
 
 ---
@@ -203,8 +185,9 @@ Personal Signature/
 
 In Xcode: **⌘U** or **Product → Test**
 
-Or via CLI:
+Or via CLI (from the `macos/` directory):
 ```bash
+cd macos
 xcodebuild -project PersonalSignature.xcodeproj -scheme PersonalSignature -destination 'platform=macOS' test
 ```
 
