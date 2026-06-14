@@ -303,7 +303,7 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2024 Ponten Contributors. MIT License.";
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
 				MARKETING_VERSION = 1.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.personalsignature.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ponten.app;
 				PRODUCT_NAME = "Ponten";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.9;
@@ -324,7 +324,7 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2024 Ponten Contributors. MIT License.";
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
 				MARKETING_VERSION = 1.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.personalsignature.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ponten.app;
 				PRODUCT_NAME = "Ponten";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.9;
@@ -340,7 +340,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.personalsignature.app.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ponten.app.tests;
 				PRODUCT_NAME = PontenTests;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.9;
@@ -357,7 +357,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.personalsignature.app.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ponten.app.tests;
 				PRODUCT_NAME = PontenTests;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.9;

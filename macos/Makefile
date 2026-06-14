@@ -12,7 +12,7 @@
 
 APP_NAME     := Ponten
 VERSION      := 1.2.0
-BUNDLE_ID    := com.personalsignature.app
+BUNDLE_ID    := com.ponten.app
 MIN_MACOS    := 13.0
 ARCH         := $(shell uname -m)
 TARGET       := $(ARCH)-apple-macosx$(MIN_MACOS)
@@ -112,7 +112,7 @@ install: sign
 	@xattr -cr "$(INSTALLED)" 2>/dev/null || true
 	@echo "✅ Installed → $(INSTALLED)"
 	@echo ""
-	@echo "Run 'make run' or 'open ~/Applications/Personal\ Signature.app' to launch."
+	@echo "Run 'make run' or 'open ~/Applications/Ponten.app' to launch."
 
 ## 5. Run
 run: install

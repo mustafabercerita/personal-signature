@@ -1,6 +1,6 @@
-# Personal Signature - AI Agent Guidelines
+# Ponten - AI Agent Guidelines
 
-Welcome to the **Personal Signature** project! This document serves as a comprehensive guide for any AI Agent working on this repository. Please read and follow these rules strictly before modifying code or pushing changes.
+Welcome to the **Ponten** project! This document serves as a comprehensive guide for any AI Agent working on this repository. Please read and follow these rules strictly before modifying code or pushing changes.
 
 ## 1. Project Architecture
 - **100% Native**: This project uses purely native AppKit and SwiftUI for macOS.

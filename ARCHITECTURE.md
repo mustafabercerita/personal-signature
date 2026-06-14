@@ -1,8 +1,8 @@
-# Architecture — Personal Signature
+# Architecture — Ponten
 
 ## Overview
 
-Personal Signature is a **menu-bar-only** macOS application. It has no main window, no Dock icon, and no visible presence beyond a single icon in the system menu bar. All interaction happens through a compact **NSPopover** rendered with **SwiftUI**.
+Ponten is a **menu-bar-only** macOS application. It has no main window, no Dock icon, and no visible presence beyond a single icon in the system menu bar. All interaction happens through a compact **NSPopover** rendered with **SwiftUI**.
 
 ---
 
@@ -41,7 +41,7 @@ Personal Signature is a **menu-bar-only** macOS application. It has no main wind
                     │    └─ writes PNG to          │
                     │       ~/Library/Application  │
                     │         Support/             │
-                    │         PersonalSignature/   │
+                    │         Ponten/            │
                     │         signature.png        │
                     │                              │
                     │  copySignatureToClipboard()  │
@@ -54,7 +54,7 @@ Personal Signature is a **menu-bar-only** macOS application. It has no main wind
 
 ## Key Components
 
-### `PersonalSignatureApp` (SwiftUI `@main`)
+### `PontenApp` (SwiftUI `@main`)
 
 - Uses `@NSApplicationDelegateAdaptor` to bridge to AppKit's `AppDelegate`.
 - Declares a `Settings { EmptyView() }` scene — the minimum required to suppress the default main window without triggering SwiftUI warnings.
@@ -72,7 +72,7 @@ The single source of truth for all business logic:
 
 | Responsibility | Implementation |
 |---|---|
-| Persistence | Copies chosen PNG into `~/Library/Application Support/PersonalSignature/signature.png` |
+| Persistence | Copies chosen PNG into `~/Library/Application Support/Ponten/signature.png` |
 | Re-encoding | Re-encodes via `NSBitmapImageRep` to guarantee valid PNG |
 | Clipboard | `NSPasteboard.general.writeObjects([NSImage])` |
 | Reactive state | `@Published` properties drive SwiftUI re-renders |
@@ -131,7 +131,7 @@ SignatureManager.copySignatureToClipboard()
 ## Storage
 
 ```
-~/Library/Application Support/PersonalSignature/
+~/Library/Application Support/Ponten/
 └── signature.png   ← single active signature, replaced on change
 ```
 
