@@ -45,6 +45,7 @@ SOURCE_FILES=(
     "PersonalSignature/Views/Components.swift"
     "PersonalSignature/Utilities/EventMonitor.swift"
     "PersonalSignature/Utilities/GlobalShortcutManager.swift"
+    "PersonalSignature/Views/DrawingView.swift"
 )
 
 # ── Help ──────────────────────────────────────────────────────────────────────

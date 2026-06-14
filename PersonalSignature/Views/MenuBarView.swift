@@ -5,6 +5,8 @@ import UniformTypeIdentifiers
 struct MenuBarView: View {
     @EnvironmentObject private var manager: SignatureManager
 
+    @State private var showDrawing = false
+
     var body: some View {
         ZStack(alignment: .bottom) {
             VStack(spacing: 0) {
@@ -14,9 +16,9 @@ struct MenuBarView: View {
 
                 Group {
                     if !manager.signatures.isEmpty {
-                        SignatureActiveView()
+                        SignatureActiveView(showDrawing: $showDrawing)
                     } else {
-                        EmptyStateView()
+                        EmptyStateView(showDrawing: $showDrawing)
                     }
                 }
                 .animation(.easeInOut(duration: 0.2), value: !manager.signatures.isEmpty)
@@ -40,6 +42,10 @@ struct MenuBarView: View {
                         )
                     )
             }
+        }
+        .sheet(isPresented: $showDrawing) {
+            DrawingView()
+                .environmentObject(manager)
         }
         .animation(.spring(response: 0.32, dampingFraction: 0.78), value: manager.toastMessage)
     }
@@ -91,6 +97,7 @@ private struct HeaderView: View {
 
 private struct SignatureActiveView: View {
     @EnvironmentObject private var manager: SignatureManager
+    @Binding var showDrawing: Bool
     @State private var showFileImporter = false
     @State private var showDeleteConfirm = false
     @State private var errorMessage: String?
@@ -197,14 +204,21 @@ private struct SignatureActiveView: View {
             .accessibilityLabel("Copy signature to clipboard")
             .accessibilityHint("Copies your signature image so you can paste it anywhere")
 
-            // Secondary row: Add + Delete
-            HStack(spacing: 16) {
+            // Secondary row: Add, Draw, Delete
+            HStack(spacing: 12) {
                 Button(action: { manager.openFilePicker() }) {
-                    Label("Add", systemImage: "plus")
+                    Label("Add", systemImage: "photo")
                         .font(.callout)
                 }
                 .buttonStyle(SecondaryButtonStyle())
                 .accessibilityLabel("Add signature file")
+                
+                Button(action: { showDrawing = true }) {
+                    Label("Draw", systemImage: "pencil.and.outline")
+                        .font(.callout)
+                }
+                .buttonStyle(SecondaryButtonStyle())
+                .accessibilityLabel("Draw new signature")
 
                 Spacer()
 
@@ -298,6 +312,7 @@ private struct SignatureActiveView: View {
 
 private struct EmptyStateView: View {
     @EnvironmentObject private var manager: SignatureManager
+    @Binding var showDrawing: Bool
     @State private var showFileImporter = false
     @State private var errorMessage: String?
     @State private var isDropTargeted = false
@@ -376,14 +391,24 @@ private struct EmptyStateView: View {
                 .transition(.opacity)
             }
 
-            Button(action: { manager.openFilePicker() }) {
-                Label("Add Signature", systemImage: "plus")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 9)
+            HStack(spacing: 12) {
+                Button(action: { manager.openFilePicker() }) {
+                    Label("Add File", systemImage: "photo")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .accessibilityLabel("Add a signature image file")
+                
+                Button(action: { showDrawing = true }) {
+                    Label("Draw", systemImage: "pencil.and.outline")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .accessibilityLabel("Draw new signature")
             }
-            .buttonStyle(PrimaryButtonStyle())
             .padding(.horizontal, 14)
-            .accessibilityLabel("Add a signature image file")
 
             Spacer(minLength: 12)
         }

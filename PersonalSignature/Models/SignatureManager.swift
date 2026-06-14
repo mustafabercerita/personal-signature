@@ -138,9 +138,14 @@ final class SignatureManager: ObservableObject {
     // MARK: - Save
 
     func saveSignature(from sourceURL: URL, removeBackground: Bool = false) throws {
-        guard var img = NSImage(contentsOf: sourceURL) else {
+        guard let img = NSImage(contentsOf: sourceURL) else {
             throw SignatureError.invalidImage
         }
+        try saveSignature(image: img, removeBackground: removeBackground)
+    }
+
+    func saveSignature(image sourceImage: NSImage, removeBackground: Bool = false) throws {
+        var img = sourceImage
 
         if removeBackground, let processed = img.removingWhiteBackground() {
             img = processed
