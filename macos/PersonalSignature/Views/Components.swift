@@ -10,6 +10,8 @@ struct PrimaryButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(size: 13, weight: .semibold))
             .foregroundColor(isEnabled ? .white : Color.white.opacity(0.5))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(isEnabled

@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct HeaderView: View {
+    private var appVersion: String {
+        return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+    }
+
     var body: some View {
         HStack(spacing: 8) {
             if let img = NSImage(named: "OriginalLogo") {
@@ -24,7 +28,7 @@ struct HeaderView: View {
             Spacer()
 
             // Version badge
-            Text("v1.0")
+            Text("v\(appVersion)")
                 .font(.system(size: 10, weight: .medium))
                 .foregroundColor(.secondary.opacity(0.7))
                 .padding(.horizontal, 6)
@@ -36,6 +40,6 @@ struct HeaderView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Personal Signature version 1.0")
+        .accessibilityLabel("Personal Signature version \(appVersion)")
     }
 }
