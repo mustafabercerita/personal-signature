@@ -28,14 +28,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         let updateObs = NotificationCenter.default.addObserver(forName: NSNotification.Name("CheckForUpdates"), object: nil, queue: .main) { [weak self] _ in
-            self?.checkForUpdates()
+            self?.checkForUpdates(silent: false)
         }
         
         observers.append(closeObs)
         observers.append(updateObs)
+        
+        // Auto-check for updates silently on launch
+        checkForUpdates(silent: true)
+        
+        // Check every 12 hours
+        Timer.scheduledTimer(withTimeInterval: 12 * 3600, repeats: true) { [weak self] _ in
+            self?.checkForUpdates(silent: true)
+        }
     }
 
-    func checkForUpdates() {
+    func checkForUpdates(silent: Bool = false) {
         // Native GitHub Releases API check
         guard let url = URL(string: "https://api.github.com/repos/mustafabercerita/personal-signature/releases/latest") else { return }
         
@@ -58,7 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                               let dmgAsset = assets.first(where: { ($0["name"] as? String)?.hasSuffix(".dmg") == true }),
                               let downloadUrlString = dmgAsset["browser_download_url"] as? String,
                               let downloadUrl = URL(string: downloadUrlString) else {
-                            self?.signatureManager.showToast("Update found, but no DMG available.")
+                            if !silent { self?.signatureManager.showToast("Update found, but no DMG available.") }
                             return
                         }
                         
@@ -66,10 +74,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         self?.downloadAndInstallUpdate(from: downloadUrl)
                         
                     } else {
-                        self?.signatureManager.showToast("You're up to date! (v\(currentVersion))")
+                        if !silent { self?.signatureManager.showToast("You're up to date! (v\(currentVersion))") }
                     }
                 } else {
-                    self?.signatureManager.showToast("Update check failed. Check network.")
+                    if !silent { self?.signatureManager.showToast("Update check failed. Check network.") }
                 }
             }
         }
