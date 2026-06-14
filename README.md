@@ -233,6 +233,7 @@ Every push to `main` triggers a GitHub Actions workflow that:
 We've recently crossed off several major milestones from our original roadmap! Here's the current status of the project:
 
 ### ✅ Completed
+- [x] **Built-in Drawing Canvas:** Draw your signature natively using your trackpad, mouse, or Apple Pencil (via Sidecar) right inside the app!
 - [x] **Multiple signature profiles:** Save and quickly switch between different signatures directly from the popover grid.
 - [x] **Background removal:** Automatically drops white backgrounds from JPEG/PNG images using native CoreImage filters so your signature is clean and transparent.
 - [x] **Auto-Paste:** Uses macOS Accessibility APIs to automatically paste your signature into the active document right after copying.
@@ -241,7 +242,6 @@ We've recently crossed off several major milestones from our original roadmap! H
 - [x] **Native Auto-Updater:** Replaced heavy Sparkle framework with a lightweight, native SwiftUI GitHub release checker.
 
 ### 🚀 Upcoming Features
-- [ ] Built-in drawing canvas (trackpad / Apple Pencil via Sidecar)
 - [ ] App Store release
 - [ ] Swift Package Manager support for modularization
 
