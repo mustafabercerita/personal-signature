@@ -117,9 +117,6 @@ compile() {
         -framework SwiftUI \
         -framework ServiceManagement \
         -framework UniformTypeIdentifiers \
-        -F "Frameworks/Sparkle" \
-        -framework Sparkle \
-        -Xlinker -rpath -Xlinker @executable_path/../Frameworks \
         -o "$BINARY_PATH" \
         "${abs_sources[@]}"
 
@@ -136,11 +133,6 @@ bundle() {
 
     cp "$BINARY_PATH" "${contents}/MacOS/${APP_NAME}"
     chmod +x "${contents}/MacOS/${APP_NAME}"
-
-    mkdir -p "${contents}/Frameworks"
-    if [[ -d "Frameworks/Sparkle/Sparkle.framework" ]]; then
-        cp -R "Frameworks/Sparkle/Sparkle.framework" "${contents}/Frameworks/"
-    fi
 
     if [[ -f "PersonalSignature/Resources/AppIcon.icns" ]]; then
         cp "PersonalSignature/Resources/AppIcon.icns" "${contents}/Resources/"

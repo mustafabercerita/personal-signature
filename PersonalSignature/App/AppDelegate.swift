@@ -1,6 +1,5 @@
 import AppKit
 import SwiftUI
-import Sparkle
 
 /// AppDelegate — manages the NSStatusItem (menu bar icon) and its popover.
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -10,15 +9,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var signatureManager = SignatureManager.shared
     private var eventMonitor: EventMonitor?
     private var globalHotkeyMonitor: Any?
-    private var updaterController: SPUStandardUpdaterController!
 
     // MARK: - App Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Menu-bar-only: hide from Dock and ⌘Tab switcher
         NSApp.setActivationPolicy(.accessory)
-
-        updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
 
         setupStatusItem()
         setupPopover()
@@ -31,7 +27,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func checkForUpdates() {
-        updaterController.checkForUpdates(nil)
+        // Native GitHub Releases API check
+        let url = URL(string: "https://api.github.com/repos/mustafabercerita/personal-signature/releases/latest")!
+        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+            DispatchQueue.main.async {
+                NSApp.activate(ignoringOtherApps: true)
+                let alert = NSAlert()
+                if let data = data,
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let tagName = json["tag_name"] as? String {
+                    
+                    let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+                    
+                    if tagName.replacingOccurrences(of: "v", with: "") > currentVersion.replacingOccurrences(of: "v", with: "") {
+                        alert.messageText = "Update Available"
+                        alert.informativeText = "Version \(tagName) is available! You are currently running \(currentVersion)."
+                        alert.addButton(withTitle: "Download Update")
+                        alert.addButton(withTitle: "Cancel")
+                        let response = alert.runModal()
+                        if response == .alertFirstButtonReturn {
+                            if let htmlUrl = json["html_url"] as? String, let url = URL(string: htmlUrl) {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                    } else {
+                        alert.messageText = "You're up to date!"
+                        alert.informativeText = "Personal Signature v\(currentVersion) is currently the newest version available."
+                        alert.addButton(withTitle: "OK")
+                        alert.runModal()
+                    }
+                } else {
+                    alert.messageText = "Update Check Failed"
+                    alert.informativeText = "Could not connect to GitHub to check for updates. Please try again later."
+                    alert.addButton(withTitle: "OK")
+                    alert.runModal()
+                }
+            }
+        }
+        task.resume()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
