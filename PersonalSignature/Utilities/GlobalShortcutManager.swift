@@ -36,10 +36,25 @@ final class GlobalShortcutManager {
         
         InstallEventHandler(GetApplicationEventTarget(), handler, 1, &eventType, nil, nil)
         
-        // Register Option + Command + S
-        // kVK_ANSI_S is 0x01
-        let keyCode: UInt32 = 0x01
-        let modifiers = UInt32(cmdKey | optionKey)
+        // Initialize from UserDefaults
+        let saved = UserDefaults.standard.integer(forKey: "GlobalShortcut")
+        updateShortcut(ShortcutChoice(rawValue: saved) ?? .optCmdS)
+    }
+    
+    func updateShortcut(_ choice: ShortcutChoice) {
+        if let ref = hotKeyRef {
+            UnregisterEventHotKey(ref)
+            hotKeyRef = nil
+        }
+        
+        let keyCode: UInt32 = 0x01 // S
+        var modifiers: UInt32 = 0
+        switch choice {
+        case .optCmdS: modifiers = UInt32(cmdKey | optionKey)
+        case .ctrlCmdS: modifiers = UInt32(cmdKey | controlKey)
+        case .shiftCmdS: modifiers = UInt32(cmdKey | shiftKey)
+        }
+        
         var hotKeyID = EventHotKeyID()
         hotKeyID.signature = OSType(1)
         hotKeyID.id = UInt32(1)

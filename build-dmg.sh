@@ -117,6 +117,9 @@ compile() {
         -framework SwiftUI \
         -framework ServiceManagement \
         -framework UniformTypeIdentifiers \
+        -F "Frameworks/Sparkle" \
+        -framework Sparkle \
+        -Xlinker -rpath -Xlinker @executable_path/../Frameworks \
         -o "$BINARY_PATH" \
         "${abs_sources[@]}"
 
@@ -134,11 +137,19 @@ bundle() {
     cp "$BINARY_PATH" "${contents}/MacOS/${APP_NAME}"
     chmod +x "${contents}/MacOS/${APP_NAME}"
 
+    mkdir -p "${contents}/Frameworks"
+    if [[ -d "Frameworks/Sparkle/Sparkle.framework" ]]; then
+        cp -R "Frameworks/Sparkle/Sparkle.framework" "${contents}/Frameworks/"
+    fi
+
     if [[ -f "PersonalSignature/Resources/AppIcon.icns" ]]; then
         cp "PersonalSignature/Resources/AppIcon.icns" "${contents}/Resources/"
     fi
     if [[ -f "PersonalSignature/Resources/MenuBarIconTemplate.png" ]]; then
         cp "PersonalSignature/Resources/MenuBarIconTemplate.png" "${contents}/Resources/"
+    fi
+    if [[ -f "PersonalSignature/Resources/OriginalLogo.png" ]]; then
+        cp "PersonalSignature/Resources/OriginalLogo.png" "${contents}/Resources/"
     fi
 
     cat > "${contents}/Info.plist" <<PLIST
@@ -148,7 +159,15 @@ bundle() {
 <dict>
     <key>LSUIElement</key>
     <true/>
-    <key>CFBundleIdentifier</key>     <string>${BUNDLE_ID}</string>
+    <key>NSSupportsAutomaticTermination</key>
+    <true/>
+    <key>NSSupportsSuddenTermination</key>
+    <true/>
+    <key>SUFeedURL</key>
+    <string>https://example.com/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>placeholder</string>
+    <key>CFBundleIdentifier</key>           <string>${BUNDLE_ID}</string>
     <key>CFBundleName</key>           <string>${APP_NAME}</string>
     <key>CFBundleDisplayName</key>    <string>${APP_NAME}</string>
     <key>CFBundleShortVersionString</key> <string>${VERSION}</string>

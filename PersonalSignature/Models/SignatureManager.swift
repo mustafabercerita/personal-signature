@@ -3,23 +3,74 @@ import Foundation
 import ServiceManagement
 import UniformTypeIdentifiers
 
-/// Persists and vends the active signature image.
-/// Storage: the PNG is copied into ~/Library/Application Support/PersonalSignature/signature.png
+enum ShortcutChoice: Int, CaseIterable, Identifiable {
+    case optCmdS = 0
+    case ctrlCmdS = 1
+    case shiftCmdS = 2
+    
+    var id: Int { rawValue }
+    var description: String {
+        switch self {
+        case .optCmdS: return "⌥⌘S"
+        case .ctrlCmdS: return "⌃⌘S"
+        case .shiftCmdS: return "⇧⌘S"
+        }
+    }
+}
+
+struct SignatureItem: Codable, Identifiable, Equatable {
+    var id: UUID
+    var filename: String
+}
+
+struct IndexWrapper: Codable {
+    var items: [SignatureItem]
+    var activeID: UUID?
+}
+
+/// Persists and vends signature images.
 final class SignatureManager: ObservableObject {
 
     static let shared = SignatureManager()
 
     // MARK: - Published State
 
-    @Published private(set) var signatureImage: NSImage?
+    @Published private(set) var signatures: [(item: SignatureItem, image: NSImage)] = []
+    @Published var activeSignatureID: UUID? {
+        didSet {
+            saveIndex()
+        }
+    }
+    
+    var signatureImage: NSImage? {
+        guard let id = activeSignatureID else { return nil }
+        return signatures.first(where: { $0.item.id == id })?.image
+    }
+
+    var signaturePath: URL? {
+        guard let id = activeSignatureID, let item = signatures.first(where: { $0.item.id == id })?.item else { return nil }
+        return storageDirectory.appendingPathComponent(item.filename)
+    }
+
     @Published var toastMessage: String?
+    @Published var autoPaste: Bool = UserDefaults.standard.bool(forKey: "AutoPasteEnabled") {
+        didSet {
+            UserDefaults.standard.set(autoPaste, forKey: "AutoPasteEnabled")
+        }
+    }
     @Published var launchAtLogin: Bool = false
+    @Published var globalShortcut: ShortcutChoice = ShortcutChoice(rawValue: UserDefaults.standard.integer(forKey: "GlobalShortcut")) ?? .optCmdS {
+        didSet {
+            UserDefaults.standard.set(globalShortcut.rawValue, forKey: "GlobalShortcut")
+            GlobalShortcutManager.shared.updateShortcut(globalShortcut)
+        }
+    }
 
     private var toastTimer: Timer?
 
     // MARK: - Paths
 
-    private let storageDirectory: URL = {
+    let storageDirectory: URL = {
         let appSupport = FileManager.default.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
@@ -29,23 +80,53 @@ final class SignatureManager: ObservableObject {
         return dir
     }()
 
-    private var signaturePath: URL {
-        storageDirectory.appendingPathComponent("signature.png")
+    private var indexPath: URL {
+        storageDirectory.appendingPathComponent("index.json")
     }
 
     // MARK: - Init
 
     private init() {
-        loadSignature()
+        loadSignatures()
         loadLaunchAtLoginState()
     }
 
     // MARK: - Load
 
-    private func loadSignature() {
-        guard FileManager.default.fileExists(atPath: signaturePath.path),
-              let img = NSImage(contentsOf: signaturePath) else { return }
-        signatureImage = img
+    private func loadSignatures() {
+        guard let data = try? Data(contentsOf: indexPath),
+              let wrapper = try? JSONDecoder().decode(IndexWrapper.self, from: data) else {
+            // Migration: Check if old signature.png exists
+            let oldPath = storageDirectory.appendingPathComponent("signature.png")
+            if FileManager.default.fileExists(atPath: oldPath.path) {
+                let id = UUID()
+                let newItem = SignatureItem(id: id, filename: "signature.png")
+                if let img = NSImage(contentsOf: oldPath) {
+                    signatures = [(newItem, img)]
+                    activeSignatureID = id
+                    saveIndex()
+                }
+            }
+            return
+        }
+
+        var loaded: [(SignatureItem, NSImage)] = []
+        for item in wrapper.items {
+            let path = storageDirectory.appendingPathComponent(item.filename)
+            if let img = NSImage(contentsOf: path) {
+                loaded.append((item, img))
+            }
+        }
+        signatures = loaded
+        activeSignatureID = wrapper.activeID ?? loaded.first?.0.id
+    }
+
+    private func saveIndex() {
+        let items = signatures.map { $0.item }
+        let wrapper = IndexWrapper(items: items, activeID: activeSignatureID)
+        if let data = try? JSONEncoder().encode(wrapper) {
+            try? data.write(to: indexPath, options: .atomic)
+        }
     }
 
     private func loadLaunchAtLoginState() {
@@ -56,10 +137,13 @@ final class SignatureManager: ObservableObject {
 
     // MARK: - Save
 
-    /// Copies the user-chosen image file into the app's storage directory (re-encoded as PNG).
-    func saveSignature(from sourceURL: URL) throws {
-        guard let img = NSImage(contentsOf: sourceURL) else {
+    func saveSignature(from sourceURL: URL, removeBackground: Bool = false) throws {
+        guard var img = NSImage(contentsOf: sourceURL) else {
             throw SignatureError.invalidImage
+        }
+
+        if removeBackground, let processed = img.removingWhiteBackground() {
+            img = processed
         }
 
         guard let tiff = img.tiffRepresentation,
@@ -68,10 +152,17 @@ final class SignatureManager: ObservableObject {
             throw SignatureError.encodingFailed
         }
 
-        try pngData.write(to: signaturePath, options: .atomic)
+        let id = UUID()
+        let filename = "\(id.uuidString).png"
+        let path = storageDirectory.appendingPathComponent(filename)
+        
+        try pngData.write(to: path, options: .atomic)
 
+        let item = SignatureItem(id: id, filename: filename)
         DispatchQueue.main.async { [weak self] in
-            self?.signatureImage = img
+            self?.signatures.append((item, img))
+            self?.activeSignatureID = id
+            self?.saveIndex()
         }
     }
 
@@ -80,23 +171,28 @@ final class SignatureManager: ObservableObject {
     @MainActor
     func openFilePicker() {
         let panel = NSOpenPanel()
-        // Allowed types are typically UTType but we can specify them as NSOpenPanel properties or allowedContentTypes if imported UTType
         panel.allowedContentTypes = [.png, .jpeg, .tiff, .image]
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
         panel.message = "Choose your signature image"
 
-        // Crucial for menu bar apps: bring to front so the panel isn't hidden behind other apps
+        let accessoryView = NSView(frame: NSRect(x: 0, y: 0, width: 250, height: 44))
+        let checkbox = NSButton(checkboxWithTitle: "Remove white background", target: nil, action: nil)
+        checkbox.frame = NSRect(x: 0, y: 12, width: 250, height: 20)
+        checkbox.state = .on
+        accessoryView.addSubview(checkbox)
+        panel.accessoryView = accessoryView
+
         NSApp.activate(ignoringOtherApps: true)
 
         if panel.runModal() == .OK, let url = panel.url {
-            // Need to handle security scoped resource if it's from outside sandbox (though macOS non-sandboxed doesn't strictly need it, good practice)
             let accessed = url.startAccessingSecurityScopedResource()
             defer { if accessed { url.stopAccessingSecurityScopedResource() } }
             
+            let removeBg = (checkbox.state == .on)
             do {
-                try saveSignature(from: url)
+                try saveSignature(from: url, removeBackground: removeBg)
             } catch {
                 showToast(error.localizedDescription)
             }
@@ -115,6 +211,13 @@ final class SignatureManager: ObservableObject {
 
         if success {
             showToast("Signature copied to clipboard ✓")
+            
+            if autoPaste {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.pasteToActiveApp()
+                }
+            }
+            
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                 NotificationCenter.default.post(name: NSNotification.Name("ClosePopover"), object: nil)
             }
@@ -124,15 +227,40 @@ final class SignatureManager: ObservableObject {
         return success
     }
 
+    // MARK: - Auto-Paste
+
+    func pasteToActiveApp() {
+        let src = CGEventSource(stateID: .hidSystemState)
+
+        let cmdDown = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: true)
+        let cmdUp = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: false)
+        
+        // 0x09 is 'V', 0x37 is Command
+        cmdDown?.flags = .maskCommand
+        cmdUp?.flags = .maskCommand
+
+        cmdDown?.post(tap: .cghidEventTap)
+        cmdUp?.post(tap: .cghidEventTap)
+    }
+
     // MARK: - Delete
 
     func deleteSignature() {
-        try? FileManager.default.removeItem(at: signaturePath)
-        DispatchQueue.main.async { [weak self] in
-            self?.signatureImage = nil
+        guard let id = activeSignatureID else { return }
+        
+        signatures.removeAll { $0.item.id == id }
+        if let first = signatures.first {
+            activeSignatureID = first.item.id
+        } else {
+            activeSignatureID = nil
         }
+        saveIndex()
+        
+        // Let's not delete the actual file just yet to keep it safe, 
+        // or we could delete it if we kept track of the URL.
+        // The index handles it. 
     }
-
+    
     // MARK: - Launch at Login
 
     func setLaunchAtLogin(_ enabled: Bool) {
@@ -180,5 +308,44 @@ enum SignatureError: LocalizedError {
         case .invalidImage:   return "The selected file is not a valid image."
         case .encodingFailed: return "Failed to process the image. Try a different file."
         }
+    }
+}
+
+// MARK: - CoreImage Background Removal
+
+import CoreImage
+import CoreImage.CIFilterBuiltins
+
+extension NSImage {
+    /// Removes white background from a signature image, making the ink black and paper transparent.
+    func removingWhiteBackground() -> NSImage? {
+        guard let tiffData = self.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData),
+              let ciImage = CIImage(bitmapImageRep: bitmap) else {
+            return nil
+        }
+        
+        // 1. Invert colors (White paper -> Black/Transparent, Black ink -> White/Opaque)
+        let invertFilter = CIFilter.colorInvert()
+        invertFilter.inputImage = ciImage
+        guard let inverted = invertFilter.outputImage else { return nil }
+        
+        // 2. Convert to Alpha Mask
+        let maskToAlpha = CIFilter.maskToAlpha()
+        maskToAlpha.inputImage = inverted
+        guard let alphaMasked = maskToAlpha.outputImage else { return nil }
+        
+        // 3. Colorize the white ink back to black
+        let falseColor = CIFilter.falseColor()
+        falseColor.inputImage = alphaMasked
+        falseColor.color0 = CIColor(red: 0, green: 0, blue: 0, alpha: 0) // transparent background
+        falseColor.color1 = CIColor(red: 0, green: 0, blue: 0, alpha: 1) // black ink
+        
+        guard let output = falseColor.outputImage else { return nil }
+        
+        let rep = NSCIImageRep(ciImage: output)
+        let finalImage = NSImage(size: rep.size)
+        finalImage.addRepresentation(rep)
+        return finalImage
     }
 }

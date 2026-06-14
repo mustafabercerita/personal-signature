@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Sparkle
 
 /// AppDelegate — manages the NSStatusItem (menu bar icon) and its popover.
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -9,12 +10,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var signatureManager = SignatureManager.shared
     private var eventMonitor: EventMonitor?
     private var globalHotkeyMonitor: Any?
+    private var updaterController: SPUStandardUpdaterController!
 
     // MARK: - App Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Menu-bar-only: hide from Dock and ⌘Tab switcher
         NSApp.setActivationPolicy(.accessory)
+
+        updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
 
         setupStatusItem()
         setupPopover()
@@ -24,6 +28,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(forName: NSNotification.Name("ClosePopover"), object: nil, queue: .main) { [weak self] _ in
             self?.closePopover()
         }
+    }
+
+    func checkForUpdates() {
+        updaterController.checkForUpdates(nil)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -59,9 +67,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let contentView = MenuBarView()
             .environmentObject(signatureManager)
         let hostingController = NSHostingController(rootView: contentView)
-        hostingController.view.frame = NSRect(x: 0, y: 0, width: 300, height: 340)
+        hostingController.view.frame = NSRect(x: 0, y: 0, width: 300, height: 380)
         popover.contentViewController = hostingController
-        popover.contentSize = NSSize(width: 300, height: 340)
+        popover.contentSize = NSSize(width: 300, height: 380)
     }
 
     // MARK: - Event Monitor (close on outside click)

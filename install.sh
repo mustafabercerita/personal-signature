@@ -118,6 +118,9 @@ compile() {
         -framework SwiftUI \
         -framework ServiceManagement \
         -framework UniformTypeIdentifiers \
+        -F "Frameworks/Sparkle" \
+        -framework Sparkle \
+        -Xlinker -rpath -Xlinker @executable_path/../Frameworks \
         -o "$BINARY_PATH" \
         "${abs_sources[@]}"
 
@@ -134,9 +137,13 @@ bundle() {
     rm -rf "$BUNDLE_PATH"
     mkdir -p "$macos_dir" "${contents}/Resources"
 
-    # Copy binary
     cp "$BINARY_PATH" "${macos_dir}/${APP_NAME}"
     chmod +x "${macos_dir}/${APP_NAME}"
+
+    mkdir -p "${contents}/Frameworks"
+    if [[ -d "Frameworks/Sparkle/Sparkle.framework" ]]; then
+        cp -R "Frameworks/Sparkle/Sparkle.framework" "${contents}/Frameworks/"
+    fi
 
     # Copy AppIcon.icns and MenuBarIcon
     if [[ -f "PersonalSignature/Resources/AppIcon.icns" ]]; then
@@ -144,6 +151,9 @@ bundle() {
     fi
     if [[ -f "PersonalSignature/Resources/MenuBarIconTemplate.png" ]]; then
         cp "PersonalSignature/Resources/MenuBarIconTemplate.png" "${contents}/Resources/"
+    fi
+    if [[ -f "PersonalSignature/Resources/OriginalLogo.png" ]]; then
+        cp "PersonalSignature/Resources/OriginalLogo.png" "${contents}/Resources/"
     fi
 
     # Write Info.plist
@@ -154,6 +164,14 @@ bundle() {
 <dict>
     <key>LSUIElement</key>
     <true/>
+    <key>NSSupportsAutomaticTermination</key>
+    <true/>
+    <key>NSSupportsSuddenTermination</key>
+    <true/>
+    <key>SUFeedURL</key>
+    <string>https://example.com/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>placeholder</string>
     <key>CFBundleIdentifier</key>
     <string>${BUNDLE_ID}</string>
     <key>CFBundleName</key>

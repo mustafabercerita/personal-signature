@@ -13,13 +13,13 @@ struct MenuBarView: View {
                 Divider()
 
                 Group {
-                    if manager.signatureImage != nil {
+                    if !manager.signatures.isEmpty {
                         SignatureActiveView()
                     } else {
                         EmptyStateView()
                     }
                 }
-                .animation(.easeInOut(duration: 0.2), value: manager.signatureImage != nil)
+                .animation(.easeInOut(duration: 0.2), value: !manager.signatures.isEmpty)
 
                 Divider()
 
@@ -50,12 +50,12 @@ struct MenuBarView: View {
 private struct HeaderView: View {
     var body: some View {
         HStack(spacing: 8) {
-            if let img = NSImage(named: "AppIcon") {
+            if let img = NSImage(named: "OriginalLogo") {
                 Image(nsImage: img)
                     .renderingMode(.template)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 18, height: 18)
+                    .frame(width: 20, height: 20)
                     .foregroundColor(.accentColor)
                     .accessibilityHidden(true)
             } else {
@@ -111,19 +111,34 @@ private struct SignatureActiveView: View {
                     )
                     .animation(.easeOut(duration: 0.15), value: isDropTargeted)
 
-                if let img = manager.signatureImage {
-                    Button(action: {
-                        manager.copySignatureToClipboard()
-                    }) {
-                        Image(nsImage: img)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: 240, maxHeight: 100)
-                            .padding(12)
-                            .contentShape(Rectangle())
+                if !manager.signatures.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 16) {
+                            ForEach(manager.signatures, id: \.item.id) { sig in
+                                Button(action: {
+                                    manager.activeSignatureID = sig.item.id
+                                    manager.copySignatureToClipboard()
+                                }) {
+                                    Image(nsImage: sig.image)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(maxWidth: 240, maxHeight: 100)
+                                        .padding(12)
+                                        .contentShape(Rectangle())
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(manager.activeSignatureID == sig.item.id ? Color.accentColor.opacity(0.1) : Color.clear)
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                                .onDrag {
+                                    let url = manager.storageDirectory.appendingPathComponent(sig.item.filename)
+                                    return NSItemProvider(contentsOf: url) ?? NSItemProvider()
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 14)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Current signature preview. Click to copy.")
                 }
 
                 // Drop hint overlay
@@ -165,7 +180,7 @@ private struct SignatureActiveView: View {
                     Image(systemName: "doc.on.clipboard")
                     Text("Sign")
                     Spacer()
-                    Text("⌥⌘S")
+                    Text(manager.globalShortcut.description)
                         .font(.caption2)
                         .foregroundColor(.white.opacity(0.7))
                         .padding(.horizontal, 6)
@@ -182,14 +197,14 @@ private struct SignatureActiveView: View {
             .accessibilityLabel("Copy signature to clipboard")
             .accessibilityHint("Copies your signature image so you can paste it anywhere")
 
-            // Secondary row: Change + Delete
+            // Secondary row: Add + Delete
             HStack(spacing: 16) {
                 Button(action: { manager.openFilePicker() }) {
-                    Label("Change", systemImage: "arrow.triangle.2.circlepath")
+                    Label("Add", systemImage: "plus")
                         .font(.callout)
                 }
                 .buttonStyle(SecondaryButtonStyle())
-                .accessibilityLabel("Change signature file")
+                .accessibilityLabel("Add signature file")
 
                 Spacer()
 
@@ -199,7 +214,7 @@ private struct SignatureActiveView: View {
                         .foregroundColor(.red.opacity(0.8))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Remove saved signature")
+                .accessibilityLabel("Remove active signature")
             }
             .padding(.horizontal, 18)
             .padding(.bottom, 14)
@@ -405,45 +420,96 @@ private struct FooterView: View {
     @State private var showAbout = false
 
     var body: some View {
-        HStack(spacing: 10) {
-            // Launch at Login toggle
-            Toggle(isOn: Binding(
-                get: { manager.launchAtLogin },
-                set: { manager.setLaunchAtLogin($0) }
-            )) {
-                Text("Launch at Login")
+        VStack(alignment: .leading, spacing: 8) {
+            
+            // Row 1: Toggles
+            VStack(alignment: .leading, spacing: 6) {
+                Toggle(isOn: Binding(
+                    get: { manager.launchAtLogin },
+                    set: { manager.setLaunchAtLogin($0) }
+                )) {
+                    Text("Launch at Login")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .toggleStyle(.checkbox)
+                .accessibilityLabel("Launch Personal Signature at login")
+                
+                Toggle(isOn: $manager.autoPaste) {
+                    Text("Auto-paste after copying")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .toggleStyle(.checkbox)
+                .accessibilityLabel("Automatically paste signature after copying")
+                .onChange(of: manager.autoPaste) { newValue in
+                    if newValue {
+                        let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as NSString: true]
+                        let accessEnabled = AXIsProcessTrustedWithOptions(options)
+                        if !accessEnabled {
+                            manager.showToast("Please allow Accessibility access in System Settings")
+                            manager.autoPaste = false
+                        }
+                    }
+                }
+            }
+
+            // Row 2: Shortcut Settings
+            HStack {
+                Text("Global Shortcut:")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                Picker("", selection: $manager.globalShortcut) {
+                    ForEach(ShortcutChoice.allCases) { choice in
+                        Text(choice.description).tag(choice)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .frame(width: 60)
             }
-            .toggleStyle(.checkbox)
-            .accessibilityLabel("Launch Personal Signature at login")
+            
+            Divider()
+                .padding(.vertical, 2)
 
-            Spacer()
-
-            // About
-            Button(action: { showAbout = true }) {
-                Image(systemName: "info.circle")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            // Row 3: Action Buttons
+            HStack {
+                Button("Check for Updates") {
+                    if let appDelegate = NSApp.delegate as? AppDelegate {
+                        appDelegate.checkForUpdates()
+                    }
+                }
+                .buttonStyle(.plain)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .accessibilityLabel("Check for Updates")
+                
+                Spacer()
+                
+                Button(action: { showAbout = true }) {
+                    Image(systemName: "info.circle")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("About Personal Signature")
+                .popover(isPresented: $showAbout, arrowEdge: .bottom) {
+                    AboutView()
+                }
+                
+                Button("Quit") {
+                    NSApp.terminate(nil)
+                }
+                .buttonStyle(.plain)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .keyboardShortcut("q", modifiers: .command)
+                .accessibilityLabel("Quit Personal Signature")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("About Personal Signature")
-            .popover(isPresented: $showAbout, arrowEdge: .bottom) {
-                AboutView()
-            }
-
-            // Quit
-            Button("Quit") {
-                NSApp.terminate(nil)
-            }
-            .buttonStyle(.plain)
-            .font(.caption)
-            .foregroundColor(.secondary)
-            .keyboardShortcut("q", modifiers: .command)
-            .accessibilityLabel("Quit Personal Signature")
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.top, 8)
+        .padding(.bottom, 12)
     }
 }
 
