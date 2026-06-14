@@ -22,7 +22,17 @@ struct SignatureActiveView: View {
                     )
                     .animation(.easeOut(duration: 0.15), value: isDropTargeted)
 
-                if !manager.signatures.isEmpty {
+                if manager.isProcessing {
+                    VStack {
+                        ProgressView()
+                            .scaleEffect(1.2)
+                        Text("Processing image...")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.accentColor)
+                            .padding(.top, 8)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if !manager.signatures.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 16) {
                             ForEach(manager.signatures, id: \.item.id) { sig in

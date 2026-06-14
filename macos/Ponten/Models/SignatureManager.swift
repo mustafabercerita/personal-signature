@@ -54,6 +54,7 @@ final class SignatureManager: ObservableObject {
 
     @Published var toastMessage: String?
     @Published var errorMessage: String?
+    @Published var isProcessing: Bool = false
     @Published var autoPaste: Bool = UserDefaults.standard.bool(forKey: "AutoPasteEnabled") {
         didSet {
             UserDefaults.standard.set(autoPaste, forKey: "AutoPasteEnabled")
@@ -207,13 +208,22 @@ final class SignatureManager: ObservableObject {
 
         if panel.runModal() == .OK, let url = panel.url {
             let accessed = url.startAccessingSecurityScopedResource()
-            defer { if accessed { url.stopAccessingSecurityScopedResource() } }
-            
             let removeBg = (checkbox.state == .on)
-            do {
-                try saveSignature(from: url, removeBackground: removeBg)
-            } catch {
-                showToast(error.localizedDescription)
+            
+            self.isProcessing = true
+            
+            DispatchQueue.global(qos: .userInitiated).async {
+                defer {
+                    if accessed { url.stopAccessingSecurityScopedResource() }
+                    DispatchQueue.main.async { self.isProcessing = false }
+                }
+                do {
+                    try self.saveSignature(from: url, removeBackground: removeBg)
+                } catch {
+                    DispatchQueue.main.async {
+                        self.showToast(error.localizedDescription)
+                    }
+                }
             }
         }
     }
@@ -231,17 +241,29 @@ final class SignatureManager: ObservableObject {
         }
         // Fallback to raw image data
         if let provider = providers.first(where: { $0.canLoadObject(ofClass: NSImage.self) }) {
+            self.isProcessing = true
             _ = provider.loadObject(ofClass: NSImage.self) { [weak self] image, _ in
-                guard let self = self, let nsImage = image as? NSImage else { return }
-                DispatchQueue.main.async {
+                guard let self = self, let nsImage = image as? NSImage else { 
+                    DispatchQueue.main.async { self?.isProcessing = false }
+                    return 
+                }
+                
+                DispatchQueue.global(qos: .userInitiated).async {
                     if !nsImage.hasPredominantlyWhiteOrTransparentEdges() {
-                        self.errorMessage = SignatureError.notWhiteBackground.localizedDescription
+                        DispatchQueue.main.async {
+                            self.errorMessage = SignatureError.notWhiteBackground.localizedDescription
+                            self.isProcessing = false
+                        }
                         return
                     }
                     do {
                         try self.saveSignature(image: nsImage, removeBackground: false, vectorize: true)
+                        DispatchQueue.main.async { self.isProcessing = false }
                     } catch {
-                        self.errorMessage = error.localizedDescription
+                        DispatchQueue.main.async {
+                            self.errorMessage = error.localizedDescription
+                            self.isProcessing = false
+                        }
                     }
                 }
             }
@@ -251,11 +273,17 @@ final class SignatureManager: ObservableObject {
     }
 
     func importURL(_ url: URL) {
-        do {
-            errorMessage = nil
-            try saveSignature(from: url, removeBackground: false)
-        } catch {
-            errorMessage = error.localizedDescription
+        self.isProcessing = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                try self.saveSignature(from: url, removeBackground: false)
+                DispatchQueue.main.async { self.isProcessing = false }
+            } catch {
+                DispatchQueue.main.async {
+                    self.errorMessage = error.localizedDescription
+                    self.isProcessing = false
+                }
+            }
         }
     }
 

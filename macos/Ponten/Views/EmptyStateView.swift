@@ -27,7 +27,11 @@ struct EmptyStateView: View {
 
                 VStack(spacing: 8) {
                     Group {
-                        if isDropTargeted {
+                        if manager.isProcessing {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                                .frame(width: 80, height: 80)
+                        } else if isDropTargeted {
                             Image(systemName: "tray.and.arrow.down.fill")
                                 .font(.system(size: 48, weight: .light))
                                 .foregroundColor(.accentColor)
@@ -50,15 +54,21 @@ struct EmptyStateView: View {
                     }
                     .animation(.easeOut(duration: 0.15), value: isDropTargeted)
 
-                    Text(isDropTargeted ? "Drop to add signature" : "No signature saved yet.")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(isDropTargeted ? .accentColor : .primary)
+                    if manager.isProcessing {
+                        Text("Processing image...")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.accentColor)
+                    } else {
+                        Text(isDropTargeted ? "Drop to add signature" : "No signature saved yet.")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(isDropTargeted ? .accentColor : .primary)
 
-                    if !isDropTargeted {
-                        Text("Choose a PNG, JPEG, or TIFF file\nor drag one here.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
+                        if !isDropTargeted {
+                            Text("Choose a PNG, JPEG, or TIFF file\nor drag one here.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
                     }
                 }
                 .padding(20)
