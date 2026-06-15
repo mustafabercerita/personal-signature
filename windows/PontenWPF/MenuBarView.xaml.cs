@@ -138,13 +138,11 @@ namespace PontenWPF
                 {
                     Clipboard.SetImage(selected.ImageSource);
                     
-                    // Auto-Paste
-                    _manager.AutoPaste();
-                    
-                    // Hide after a brief delay
-                    System.Threading.Tasks.Task.Delay(300).ContinueWith(_ => 
+                    // Hide to restore focus to previous window, then paste
+                    this.Hide();
+                    System.Threading.Tasks.Task.Delay(100).ContinueWith(_ => 
                     {
-                        Dispatcher.Invoke(() => this.Hide());
+                        _manager.AutoPaste();
                     });
                 }
             }
