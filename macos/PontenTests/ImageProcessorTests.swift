@@ -3,26 +3,6 @@ import XCTest
 
 final class ImageProcessorTests: XCTestCase {
 
-    func testRemoveBackground() {
-        let size = CGSize(width: 100, height: 100)
-        let image = NSImage(size: size)
-        image.lockFocus()
-        NSColor.white.setFill()
-        NSRect(origin: .zero, size: size).fill()
-        NSColor.black.setFill()
-        NSRect(x: 40, y: 40, width: 20, height: 20).fill()
-        image.unlockFocus()
-        
-        let processor = ImageProcessor()
-        guard let result = try? processor.removeBackground(from: image) else {
-            XCTFail("Failed to remove background")
-            return
-        }
-        XCTAssertNotNil(result)
-        // Basic check: should return a cropped image roughly the size of the black box (20x20)
-        XCTAssertTrue(result.size.width < 50, "Cropping should have reduced the size")
-    }
-
     func testThickenLines() {
         let size = CGSize(width: 50, height: 50)
         let image = NSImage(size: size)
@@ -33,12 +13,30 @@ final class ImageProcessorTests: XCTestCase {
         NSRect(x: 20, y: 20, width: 10, height: 10).fill()
         image.unlockFocus()
 
-        let processor = ImageProcessor()
-        guard let result = try? processor.thickenLines(in: image, amount: 5.0) else {
+        guard let result = ImageProcessor.thickenLines(image: image, radius: 5.0) else {
             XCTFail("Failed to thicken lines")
             return
         }
         XCTAssertNotNil(result)
-        XCTAssertEqual(result.size, size)
+        // ImageProcessor.thickenLines adds padding to prevent clipping
+        XCTAssertTrue(result.size.width > size.width, "Padding should be added")
+    }
+
+    func testAutoTrimWhitespace() {
+        let size = CGSize(width: 100, height: 100)
+        let image = NSImage(size: size)
+        image.lockFocus()
+        NSColor.white.setFill()
+        NSRect(origin: .zero, size: size).fill()
+        NSColor.black.setFill()
+        NSRect(x: 40, y: 40, width: 20, height: 20).fill()
+        image.unlockFocus()
+        
+        guard let result = ImageProcessor.autoTrimWhitespace(image: image, padding: 0) else {
+            XCTFail("Failed to trim whitespace")
+            return
+        }
+        XCTAssertNotNil(result)
+        XCTAssertTrue(result.size.width <= 21, "Cropping should have reduced the size significantly")
     }
 }
