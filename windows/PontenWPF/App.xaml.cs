@@ -18,7 +18,11 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        
         Log("App startup initiated");
+        string exePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        Log($"Executable Path: {exePath}");
         Log($"Version: {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}");
         
         _mutex = new Mutex(true, MutexName, out _hasMutex);
@@ -43,18 +47,30 @@ public partial class App : Application
         base.OnStartup(e);
         try 
         {
+            Log("Extracting Associated Icon...");
+            var sysIcon = System.Drawing.Icon.ExtractAssociatedIcon(exePath);
+            if (sysIcon == null)
+            {
+                Log("Warning: Extracted icon is null!");
+            }
+
             notifyIcon = new TaskbarIcon
             {
-                IconSource = new BitmapImage(new Uri("pack://application:,,,/Assets/Ponten.ico")),
+                Icon = sysIcon,
                 ToolTipText = "Ponten",
                 Visibility = Visibility.Visible
             };
             notifyIcon.TrayLeftMouseUp += NotifyIcon_TrayLeftMouseUp;
-            Log("Tray icon instantiated and set to visible successfully");
+            
+            Log("Calling ForceCreate(false)...");
+            notifyIcon.ForceCreate(false);
+            
+            Log($"Tray icon instantiated. IsCreated: {notifyIcon.IsCreated}");
         }
         catch (Exception ex)
         {
             Log($"Failed to instantiate Tray Icon: {ex}");
+            Log($"Stacktrace: {ex.StackTrace}");
         }
         
         MainWindow = new MenuBarView();
