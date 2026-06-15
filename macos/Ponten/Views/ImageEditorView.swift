@@ -16,7 +16,7 @@ struct ImageEditorView: View {
     
     @State private var previewImage: NSImage?
     @State private var isProcessingPreview: Bool = false
-    @State private var previewUpdateWorkItem: DispatchWorkItem?
+    @State private var previewUpdateTask: Task<Void, Never>?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -158,12 +158,12 @@ struct ImageEditorView: View {
         .onChange(of: autoTrim) { _ in updatePreview() }
         .onChange(of: removeBackground) { _ in updatePreview() }
         .onDisappear {
-            previewUpdateWorkItem?.cancel()
+            previewUpdateTask?.cancel()
         }
     }
     
     private func updatePreview() {
-        previewUpdateWorkItem?.cancel()
+        previewUpdateTask?.cancel()
         
         let currentContrast = contrast
         let currentBrightness = brightness
@@ -172,66 +172,65 @@ struct ImageEditorView: View {
         let currentAutoTrim = autoTrim
         let currentRemoveBg = removeBackground
         
-        var workItem: DispatchWorkItem?
-        workItem = DispatchWorkItem { [sourceImage] in
-            guard workItem?.isCancelled == false else { return }
-
-            DispatchQueue.main.async {
-                guard workItem?.isCancelled == false else { return }
-                isProcessingPreview = true
-            }
-
-            var img = sourceImage
-
-            // 0. Thicken Lines
-            if currentThicken > 0 {
-                if let thickened = ImageProcessor.thickenLines(image: img, radius: currentThicken) {
-                    img = thickened
+        previewUpdateTask = Task {
+            // Debounce 0.1 seconds
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            guard !Task.isCancelled else { return }
+            
+            await MainActor.run { isProcessingPreview = true }
+            
+            let finalImg = await Task.detached(priority: .userInitiated) { () -> NSImage? in
+                var img = sourceImage
+                
+                // 0. Thicken Lines
+                if currentThicken > 0 {
+                    if let thickened = ImageProcessor.thickenLines(image: img, radius: currentThicken) {
+                        img = thickened
+                    }
                 }
-            }
-            guard workItem?.isCancelled == false else { return }
+                guard !Task.isCancelled else { return nil }
 
-            // 1. Color Adjustments
-            if let colorAdjusted = ImageProcessor.adjustColor(image: img, contrast: currentContrast, brightness: currentBrightness) {
-                img = colorAdjusted
-            }
-            guard workItem?.isCancelled == false else { return }
-
-            // 2. Rotation
-            if currentRotation != 0 {
-                if let rotated = ImageProcessor.rotate(image: img, degrees: CGFloat(currentRotation)) {
-                    img = rotated
+                // 1. Color Adjustments
+                if let colorAdjusted = ImageProcessor.adjustColor(image: img, contrast: currentContrast, brightness: currentBrightness) {
+                    img = colorAdjusted
                 }
-            }
-            guard workItem?.isCancelled == false else { return }
+                guard !Task.isCancelled else { return nil }
 
-            // 3. Remove Background
-            if currentRemoveBg {
-                if let removed = img.removingWhiteBackground() {
-                    img = removed
+                // 2. Rotation
+                if currentRotation != 0 {
+                    if let rotated = ImageProcessor.rotate(image: img, degrees: CGFloat(currentRotation)) {
+                        img = rotated
+                    }
                 }
-            }
-            guard workItem?.isCancelled == false else { return }
+                guard !Task.isCancelled else { return nil }
 
-            // 4. Auto-Trim
-            if currentAutoTrim {
-                let dynamicPadding = max(10, Int(ceil(currentThicken)) + 12)
-                if let trimmed = ImageProcessor.autoTrimWhitespace(image: img, padding: dynamicPadding) {
-                    img = trimmed
+                // 3. Remove Background
+                if currentRemoveBg {
+                    if let removed = img.removingWhiteBackground() {
+                        img = removed
+                    }
                 }
-            }
+                guard !Task.isCancelled else { return nil }
 
-            DispatchQueue.main.async {
-                guard workItem?.isCancelled == false else { return }
-                previewImage = img
-                isProcessingPreview = false
+                // 4. Auto-Trim
+                if currentAutoTrim {
+                    let dynamicPadding = max(10, Int(ceil(currentThicken)) + 12)
+                    if let trimmed = ImageProcessor.autoTrimWhitespace(image: img, padding: dynamicPadding) {
+                        img = trimmed
+                    }
+                }
+                
+                return img
+            }.value
+            
+            guard !Task.isCancelled else { return }
+            
+            await MainActor.run {
+                if let finalImg = finalImg {
+                    self.previewImage = finalImg
+                }
+                self.isProcessingPreview = false
             }
-        }
-
-        previewUpdateWorkItem = workItem
-        if let workItem {
-            // Debounce to avoid queueing expensive filters while the user drags sliders.
-            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.1, execute: workItem)
         }
     }
     
