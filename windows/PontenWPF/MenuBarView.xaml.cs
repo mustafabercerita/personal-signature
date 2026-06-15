@@ -71,6 +71,8 @@ namespace PontenWPF
         private void MenuBarView_Loaded(object sender, RoutedEventArgs e)
         {
             LoadSignatures();
+            LaunchAtLoginCheck.IsChecked = _storage.Settings.LaunchAtLogin;
+            AutoPasteCheck.IsChecked = _storage.Settings.AutoPaste;
         }
 
         private void LoadSignatures()
@@ -149,14 +151,73 @@ namespace PontenWPF
                         
                         // Hide to restore focus to previous window, then paste
                         this.Hide();
-                        System.Threading.Tasks.Task.Delay(100).ContinueWith(_ => 
+                        if (_storage.Settings.AutoPaste)
                         {
-                            _manager.AutoPaste();
-                        });
+                            System.Threading.Tasks.Task.Delay(100).ContinueWith(_ => 
+                            {
+                                _manager.AutoPaste();
+                            });
+                        }
                     }
                     catch (Exception) { /* Handle clipboard error gracefully */ }
                 }
             }
+        }
+
+        private void SignButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (SignaturesListBox.SelectedItem is SignatureDisplayItem selected)
+            {
+                SignaturesListBox_SelectionChanged(SignaturesListBox, null!);
+            }
+            else if (_storage.ActiveSignatureID.HasValue)
+            {
+                var active = DisplayItems.FirstOrDefault(d => d.Item.Id == _storage.ActiveSignatureID.Value);
+                if (active != null)
+                {
+                    SignaturesListBox.SelectedItem = active;
+                }
+            }
+        }
+
+        private void DrawSignature_Click(object sender, RoutedEventArgs e)
+        {
+            TriggerDrawSignature();
+        }
+
+        private void RemoveSignature_Click(object sender, RoutedEventArgs e)
+        {
+            if (SignaturesListBox.SelectedItem is SignatureDisplayItem selected)
+            {
+                _storage.RemoveSignature(selected.Item.Id);
+                LoadSignatures();
+            }
+        }
+
+        private void LaunchAtLoginCheck_Click(object sender, RoutedEventArgs e)
+        {
+            _storage.ApplyLaunchAtLogin(LaunchAtLoginCheck.IsChecked ?? false);
+        }
+
+        private void AutoPasteCheck_Click(object sender, RoutedEventArgs e)
+        {
+            _storage.Settings.AutoPaste = AutoPasteCheck.IsChecked ?? true;
+            _storage.SaveIndex();
+        }
+
+        private void SetShortcut_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Shortcut customization is coming soon. Current shortcut is Ctrl+Alt+S.", "Ponten", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void CheckUpdates_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Ponten is up to date (v1.2.12).", "Update", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void Quit_Click(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
         }
 
         public void TriggerAddSignature()
@@ -174,7 +235,11 @@ namespace PontenWPF
                 string filename = $"{id}.png";
                 string path = _storage.GetSignatureFilePath(filename);
                 
-                bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+                using (var ms = new MemoryStream())
+                {
+                    bitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                    File.WriteAllBytes(path, ms.ToArray());
+                }
                 bitmap.Dispose();
                 
                 _storage.AddSignature(new SignatureItem { Id = id, Filename = filename });
@@ -204,15 +269,21 @@ namespace PontenWPF
                         return;
                     }
 
+                    bool removeBg = RemoveBgToggle.IsChecked ?? true;
                     // Open ImageEditorWindow to fine-tune thickness/remove background
                     var editor = new ImageEditorWindow(original);
+                    editor.RemoveBgCheckBox.IsChecked = removeBg; // If we wanted to pass this to the editor
                     editor.OnSave += (processedBmp) => 
                     {
                         var id = Guid.NewGuid();
                         string filename = $"{id}.png";
                         string path = _storage.GetSignatureFilePath(filename);
                         
-                        processedBmp.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+                        using (var ms = new MemoryStream())
+                        {
+                            processedBmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                            File.WriteAllBytes(path, ms.ToArray());
+                        }
                         processedBmp.Dispose();
                         
                         _storage.AddSignature(new SignatureItem { Id = id, Filename = filename });

@@ -13,10 +13,17 @@ namespace PontenWPF
         public string? Name { get; set; }
     }
 
+    public class UserSettings
+    {
+        public bool LaunchAtLogin { get; set; } = false;
+        public bool AutoPaste { get; set; } = true;
+    }
+
     public class IndexWrapper
     {
         public List<SignatureItem> Items { get; set; } = new();
         public Guid? ActiveID { get; set; }
+        public UserSettings Settings { get; set; } = new();
     }
 
     public class SignatureStorage
@@ -26,6 +33,7 @@ namespace PontenWPF
 
         public List<SignatureItem> Signatures { get; private set; } = new();
         public Guid? ActiveSignatureID { get; set; }
+        public UserSettings Settings { get; set; } = new();
 
         public SignatureStorage()
         {
@@ -52,6 +60,7 @@ namespace PontenWPF
                     {
                         Signatures = wrapper.Items;
                         ActiveSignatureID = wrapper.ActiveID;
+                        if (wrapper.Settings != null) Settings = wrapper.Settings;
                     }
                 }
                 catch (Exception ex)
@@ -85,7 +94,8 @@ namespace PontenWPF
             var wrapper = new IndexWrapper
             {
                 Items = Signatures,
-                ActiveID = ActiveSignatureID
+                ActiveID = ActiveSignatureID,
+                Settings = Settings
             };
             try
             {
@@ -132,6 +142,36 @@ namespace PontenWPF
             {
                 ActiveSignatureID = id;
                 SaveIndex();
+            }
+        }
+
+        public void ApplyLaunchAtLogin(bool launch)
+        {
+            Settings.LaunchAtLogin = launch;
+            SaveIndex();
+            try
+            {
+                using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
+                if (key != null)
+                {
+                    string appName = "PontenSignatures";
+                    if (launch)
+                    {
+                        string exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? "";
+                        if (!string.IsNullOrEmpty(exePath))
+                        {
+                            key.SetValue(appName, $"\"{exePath}\"");
+                        }
+                    }
+                    else
+                    {
+                        key.DeleteValue(appName, false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                App.Log($"Failed to set Launch at Login: {ex.Message}");
             }
         }
     }
