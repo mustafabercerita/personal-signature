@@ -176,51 +176,56 @@ struct ImageEditorView: View {
             
             await MainActor.run { isProcessingPreview = true }
             
-            var img = sourceImage
-            
-            // 0. Thicken Lines
-            if currentThicken > 0 {
-                if let thickened = ImageProcessor.thickenLines(image: img, radius: currentThicken) {
-                    img = thickened
+            let finalImage = await Task.detached(priority: .userInitiated) { () -> NSImage? in
+                var img = sourceImage
+                
+                // 0. Thicken Lines
+                if currentThicken > 0 {
+                    if let thickened = ImageProcessor.thickenLines(image: img, radius: currentThicken) {
+                        img = thickened
+                    }
                 }
-            }
-            guard !Task.isCancelled else { return }
-            
-            // 1. Color Adjustments
-            if let colorAdjusted = ImageProcessor.adjustColor(image: img, contrast: currentContrast, brightness: currentBrightness) {
-                img = colorAdjusted
-            }
-            guard !Task.isCancelled else { return }
-            
-            // 2. Rotation
-            if currentRotation != 0 {
-                if let rotated = ImageProcessor.rotate(image: img, degrees: CGFloat(currentRotation)) {
-                    img = rotated
+                guard !Task.isCancelled else { return nil }
+                
+                // 1. Color Adjustments
+                if let colorAdjusted = ImageProcessor.adjustColor(image: img, contrast: currentContrast, brightness: currentBrightness) {
+                    img = colorAdjusted
                 }
-            }
-            guard !Task.isCancelled else { return }
-            
-            // 3. Remove Background
-            if currentRemoveBg {
-                if let removed = img.removingWhiteBackground() {
-                    img = removed
+                guard !Task.isCancelled else { return nil }
+                
+                // 2. Rotation
+                if currentRotation != 0 {
+                    if let rotated = ImageProcessor.rotate(image: img, degrees: CGFloat(currentRotation)) {
+                        img = rotated
+                    }
                 }
-            }
-            guard !Task.isCancelled else { return }
-            
-            // 4. Auto-Trim
-            if currentAutoTrim {
-                if let trimmed = ImageProcessor.autoTrimWhitespace(image: img) {
-                    img = trimmed
+                guard !Task.isCancelled else { return nil }
+                
+                // 3. Remove Background
+                if currentRemoveBg {
+                    if let removed = img.removingWhiteBackground() {
+                        img = removed
+                    }
                 }
-            }
+                guard !Task.isCancelled else { return nil }
+                
+                // 4. Auto-Trim
+                if currentAutoTrim {
+                    if let trimmed = ImageProcessor.autoTrimWhitespace(image: img) {
+                        img = trimmed
+                    }
+                }
+                
+                return img
+            }.value
             
             guard !Task.isCancelled else { return }
             
-            let finalImage = img
-            await MainActor.run {
-                self.previewImage = finalImage
-                self.isProcessingPreview = false
+            if let finalImage = finalImage {
+                await MainActor.run {
+                    self.previewImage = finalImage
+                    self.isProcessingPreview = false
+                }
             }
         }
     }

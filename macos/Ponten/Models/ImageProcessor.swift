@@ -96,47 +96,26 @@ class ImageProcessor {
     
     /// Automatically crops out purely white or transparent borders around the ink
     static func autoTrimWhitespace(image: NSImage) -> NSImage? {
-        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
-        let width = cgImage.width
-        let height = cgImage.height
+        guard let tiffData = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData) else { return image }
         
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let bytesPerPixel = 4
-        let bytesPerRow = bytesPerPixel * width
-        var pixelData = [UInt8](repeating: 0, count: height * bytesPerRow)
-        
-        let context = CGContext(
-            data: &pixelData,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: bytesPerRow,
-            space: colorSpace,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        )
-        
-        guard let ctx = context else { return nil }
-        ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        let width = bitmap.pixelsWide
+        let height = bitmap.pixelsHigh
         
         var minX = width
         var minY = height
         var maxX = 0
         var maxY = 0
-        
         var hasInk = false
         
         for y in 0..<height {
             for x in 0..<width {
-                let offset = (y * bytesPerRow) + (x * bytesPerPixel)
-                let r = pixelData[offset]
-                let g = pixelData[offset + 1]
-                let b = pixelData[offset + 2]
-                let a = pixelData[offset + 3]
+                guard let color = bitmap.colorAt(x: x, y: y) else { continue }
                 
                 // If it's transparent, skip
-                if a < 10 { continue }
+                if color.alphaComponent < 0.05 { continue }
                 // If it's very white, skip
-                if r > 240 && g > 240 && b > 240 { continue }
+                if color.redComponent > 0.94 && color.greenComponent > 0.94 && color.blueComponent > 0.94 { continue }
                 
                 // It's ink!
                 hasInk = true
@@ -147,7 +126,7 @@ class ImageProcessor {
             }
         }
         
-        if !hasInk { return image } // Blank image, return as is
+        if !hasInk { return image }
         
         // Add a small padding
         let padding = 10
@@ -156,13 +135,9 @@ class ImageProcessor {
         maxX = min(width - 1, maxX + padding)
         maxY = min(height - 1, maxY + padding)
         
-        // Convert bottom-left coordinates (pixelData) to top-left (cgImage.cropping)
-        let topY = height - 1 - maxY
-        let cropWidth = maxX - minX + 1
-        let cropHeight = maxY - minY + 1
-        
-        let cropRect = CGRect(x: minX, y: topY, width: cropWidth, height: cropHeight)
-        guard let croppedCGImage = cgImage.cropping(to: cropRect) else { return nil }
+        let cropRect = CGRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1)
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil),
+              let croppedCGImage = cgImage.cropping(to: cropRect) else { return nil }
         
         return NSImage(cgImage: croppedCGImage, size: NSSize(width: croppedCGImage.width, height: croppedCGImage.height))
     }
