@@ -153,15 +153,19 @@ public partial class App : Application
         }
     }
     
-    private void Log(string message)
+    private static readonly object _logLock = new object();
+    public static void Log(string message)
     {
         try
         {
-            string logDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Ponten", "logs");
-            Directory.CreateDirectory(logDir);
-            string logFile = Path.Combine(logDir, "app.log");
-            string formattedMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}";
-            File.AppendAllText(logFile, formattedMessage);
+            lock (_logLock)
+            {
+                string logDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Ponten", "logs");
+                Directory.CreateDirectory(logDir);
+                string logFile = Path.Combine(logDir, "app.log");
+                string formattedMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}";
+                File.AppendAllText(logFile, formattedMessage);
+            }
         }
         catch { /* Ignore logging failures */ }
     }

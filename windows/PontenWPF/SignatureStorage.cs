@@ -54,9 +54,9 @@ namespace PontenWPF
                         ActiveSignatureID = wrapper.ActiveID;
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Ignore malformed json
+                    App.Log($"Failed to load index.json: {ex.Message}");
                 }
             }
             
@@ -92,7 +92,10 @@ namespace PontenWPF
                 string json = JsonSerializer.Serialize(wrapper, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(_indexPath, json);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                App.Log($"Failed to save index.json: {ex.Message}");
+            }
         }
 
         public void AddSignature(SignatureItem item)
@@ -111,7 +114,8 @@ namespace PontenWPF
                 string path = GetSignatureFilePath(item.Filename);
                 if (File.Exists(path))
                 {
-                    try { File.Delete(path); } catch { }
+                    try { File.Delete(path); }
+                    catch (Exception ex) { App.Log($"Failed to delete signature image {path}: {ex.Message}"); }
                 }
                 
                 if (ActiveSignatureID == id)

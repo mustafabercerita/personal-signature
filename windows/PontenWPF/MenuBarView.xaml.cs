@@ -89,7 +89,10 @@ namespace PontenWPF
                         
                         DisplayItems.Add(new SignatureDisplayItem { Item = item, ImageSource = bitmap });
                     }
-                    catch { }
+                    catch (Exception ex) 
+                    { 
+                        App.Log($"Failed to load image for item {item.Filename}: {ex.Message}");
+                    }
                 }
             }
 
