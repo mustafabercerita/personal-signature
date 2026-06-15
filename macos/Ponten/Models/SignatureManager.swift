@@ -59,6 +59,12 @@ final class SignatureManager: ObservableObject {
     @Published var pendingImageToEdit: NSImage? = nil
     @Published var pendingEditSignatureID: UUID? = nil
     
+    @Published var showWhiteCanvas: Bool = UserDefaults.standard.object(forKey: "ShowWhiteCanvas") == nil ? true : UserDefaults.standard.bool(forKey: "ShowWhiteCanvas") {
+        didSet {
+            UserDefaults.standard.set(showWhiteCanvas, forKey: "ShowWhiteCanvas")
+        }
+    }
+    
     @Published var autoPaste: Bool = UserDefaults.standard.bool(forKey: "AutoPasteEnabled") {
         didSet {
             UserDefaults.standard.set(autoPaste, forKey: "AutoPasteEnabled")

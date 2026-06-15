@@ -42,13 +42,11 @@ struct ImageEditorView: View {
                 Color(previewWhiteBackground ? NSColor.white : NSColor.controlBackgroundColor)
                 
                 if let img = previewImage {
-                    ScrollView([.horizontal, .vertical], showsIndicators: true) {
-                        Image(nsImage: img)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 360 * zoomLevel)
-                            .padding(20)
-                    }
+                    Image(nsImage: img)
+                        .resizable()
+                        .scaledToFit()
+                        .padding(20)
+                        .scaleEffect(zoomLevel)
                 }
                 
                 if isProcessingPreview {
@@ -59,6 +57,7 @@ struct ImageEditorView: View {
                 }
             }
             .frame(height: 200)
+            .clipped()
             
             Divider()
             

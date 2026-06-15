@@ -15,7 +15,7 @@ struct SignatureActiveView: View {
             // Preview area (also a drop target)
             ZStack {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color(NSColor.controlBackgroundColor))
+                    .fill(manager.showWhiteCanvas ? Color.white : Color(NSColor.controlBackgroundColor))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .strokeBorder(
@@ -84,6 +84,24 @@ struct SignatureActiveView: View {
                         }
                         .padding(.horizontal, 14)
                     }
+                }
+                
+                // White Canvas Toggle
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            manager.showWhiteCanvas.toggle()
+                        }) {
+                            Image(systemName: manager.showWhiteCanvas ? "square.fill" : "square")
+                                .foregroundColor(.secondary.opacity(0.5))
+                                .font(.system(size: 12))
+                                .help("Toggle White Canvas")
+                        }
+                        .buttonStyle(.plain)
+                        .padding(8)
+                    }
+                    Spacer()
                 }
 
                 // Drop hint overlay
