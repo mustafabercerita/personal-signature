@@ -56,6 +56,8 @@ final class SignatureManager: ObservableObject {
     @Published var toastMessage: String?
     @Published var errorMessage: String?
     @Published var isProcessing: Bool = false
+    @Published var pendingImageToEdit: NSImage? = nil
+    
     @Published var autoPaste: Bool = UserDefaults.standard.bool(forKey: "AutoPasteEnabled") {
         didSet {
             UserDefaults.standard.set(autoPaste, forKey: "AutoPasteEnabled")
@@ -198,34 +200,18 @@ final class SignatureManager: ObservableObject {
         panel.canChooseFiles = true
         panel.message = "Choose your signature image"
 
-        let accessoryView = NSView(frame: NSRect(x: 0, y: 0, width: 250, height: 44))
-        let checkbox = NSButton(checkboxWithTitle: "Remove white background", target: nil, action: nil)
-        checkbox.frame = NSRect(x: 0, y: 12, width: 250, height: 20)
-        checkbox.state = .on
-        accessoryView.addSubview(checkbox)
-        panel.accessoryView = accessoryView
-
         NSApp.activate(ignoringOtherApps: true)
 
         if panel.runModal() == .OK, let url = panel.url {
             let accessed = url.startAccessingSecurityScopedResource()
-            let removeBg = (checkbox.state == .on)
             
-            self.isProcessing = true
-            
-            DispatchQueue.global(qos: .userInitiated).async {
-                defer {
-                    if accessed { url.stopAccessingSecurityScopedResource() }
-                    DispatchQueue.main.async { self.isProcessing = false }
-                }
-                do {
-                    try self.saveSignature(from: url, removeBackground: removeBg)
-                } catch {
-                    DispatchQueue.main.async {
-                        self.showToast(error.localizedDescription)
-                    }
-                }
+            if let image = NSImage(contentsOf: url) {
+                self.pendingImageToEdit = image
+            } else {
+                self.showToast(SignatureError.invalidImage.localizedDescription)
             }
+            
+            if accessed { url.stopAccessingSecurityScopedResource() }
         }
     }
 
@@ -242,30 +228,10 @@ final class SignatureManager: ObservableObject {
         }
         // Fallback to raw image data
         if let provider = providers.first(where: { $0.canLoadObject(ofClass: NSImage.self) }) {
-            self.isProcessing = true
             _ = provider.loadObject(ofClass: NSImage.self) { [weak self] image, _ in
-                guard let self = self, let nsImage = image as? NSImage else { 
-                    DispatchQueue.main.async { self?.isProcessing = false }
-                    return 
-                }
-                
-                DispatchQueue.global(qos: .userInitiated).async {
-                    if !nsImage.hasPredominantlyWhiteOrTransparentEdges() {
-                        DispatchQueue.main.async {
-                            self.errorMessage = SignatureError.notWhiteBackground.localizedDescription
-                            self.isProcessing = false
-                        }
-                        return
-                    }
-                    do {
-                        try self.saveSignature(image: nsImage, removeBackground: false, vectorize: true)
-                        DispatchQueue.main.async { self.isProcessing = false }
-                    } catch {
-                        DispatchQueue.main.async {
-                            self.errorMessage = error.localizedDescription
-                            self.isProcessing = false
-                        }
-                    }
+                guard let self = self, let nsImage = image as? NSImage else { return }
+                DispatchQueue.main.async {
+                    self.pendingImageToEdit = nsImage
                 }
             }
             return true
@@ -274,16 +240,13 @@ final class SignatureManager: ObservableObject {
     }
 
     func importURL(_ url: URL) {
-        self.isProcessing = true
-        DispatchQueue.global(qos: .userInitiated).async {
-            do {
-                try self.saveSignature(from: url, removeBackground: false)
-                DispatchQueue.main.async { self.isProcessing = false }
-            } catch {
-                DispatchQueue.main.async {
-                    self.errorMessage = error.localizedDescription
-                    self.isProcessing = false
-                }
+        if let image = NSImage(contentsOf: url) {
+            DispatchQueue.main.async {
+                self.pendingImageToEdit = image
+            }
+        } else {
+            DispatchQueue.main.async {
+                self.errorMessage = SignatureError.invalidImage.localizedDescription
             }
         }
     }

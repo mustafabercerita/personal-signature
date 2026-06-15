@@ -47,6 +47,15 @@ struct MenuBarView: View {
             DrawingView()
                 .environmentObject(manager)
         }
+        .sheet(isPresented: Binding(
+            get: { manager.pendingImageToEdit != nil },
+            set: { if !$0 { manager.pendingImageToEdit = nil } }
+        )) {
+            if let image = manager.pendingImageToEdit {
+                ImageEditorView(sourceImage: image)
+                    .environmentObject(manager)
+            }
+        }
         .animation(.spring(response: 0.32, dampingFraction: 0.78), value: manager.toastMessage)
     }
 }
