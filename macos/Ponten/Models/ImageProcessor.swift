@@ -27,22 +27,12 @@ class ImageProcessor {
         guard let whiteBgCGImage = context.makeImage() else { return nil }
         let ciImage = CIImage(cgImage: whiteBgCGImage)
         
-        // 2. Gaussian Blur to spread the ink with round corners
-        let blurFilter = CIFilter.gaussianBlur()
-        blurFilter.inputImage = ciImage
-        // The blur radius should be proportional to the desired thickness
-        blurFilter.radius = Float(radius / 1.5)
+        // 2. Morphology Minimum
+        let filter = CIFilter.morphologyMinimum()
+        filter.inputImage = ciImage
+        filter.radius = Float(radius)
         
-        guard let blurredImage = blurFilter.outputImage else { return nil }
-        
-        // 3. Color Controls to threshold the blurred image, hardening the edges
-        let colorFilter = CIFilter.colorControls()
-        colorFilter.inputImage = blurredImage
-        colorFilter.contrast = 50.0 // High contrast forces sharp edges
-        // Darken the image slightly so the threshold expands the black regions
-        colorFilter.brightness = Float(-radius / 60.0)
-        
-        guard let outputImage = colorFilter.outputImage else { return nil }
+        guard let outputImage = filter.outputImage else { return nil }
         let ciContext = CIContext(options: nil)
         guard let finalCGImage = ciContext.createCGImage(outputImage, from: ciImage.extent) else { return nil }
         
