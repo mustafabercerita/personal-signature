@@ -1,29 +1,15 @@
 {
   "version": 2,
-  "dgSpecHash": "bQVopD7ER3U=",
+  "dgSpecHash": "J/KCHUaTLT0=",
   "success": true,
   "projectFilePath": "/Users/mustafa/Downloads/Developer Project/Ponten/windows/PontenWPF/PontenWPF.csproj",
   "expectedPackageFiles": [
-    "/Users/mustafa/.nuget/packages/h.generatedicons.system.drawing/2.4.1/h.generatedicons.system.drawing.2.4.1.nupkg.sha512",
-    "/Users/mustafa/.nuget/packages/h.notifyicon/2.4.1/h.notifyicon.2.4.1.nupkg.sha512",
-    "/Users/mustafa/.nuget/packages/h.notifyicon.wpf/2.4.1/h.notifyicon.wpf.2.4.1.nupkg.sha512",
+    "/Users/mustafa/.nuget/packages/h.generatedicons.system.drawing/2.3.2/h.generatedicons.system.drawing.2.3.2.nupkg.sha512",
+    "/Users/mustafa/.nuget/packages/h.notifyicon/2.3.2/h.notifyicon.2.3.2.nupkg.sha512",
+    "/Users/mustafa/.nuget/packages/h.notifyicon.wpf/2.3.2/h.notifyicon.wpf.2.3.2.nupkg.sha512",
     "/Users/mustafa/.nuget/packages/microsoft.win32.systemevents/10.0.9/microsoft.win32.systemevents.10.0.9.nupkg.sha512",
     "/Users/mustafa/.nuget/packages/system.drawing.common/10.0.9/system.drawing.common.10.0.9.nupkg.sha512",
-    "/Users/mustafa/.nuget/packages/system.memory/4.6.0/system.memory.4.6.0.nupkg.sha512",
-    "/Users/mustafa/.nuget/packages/system.runtime.compilerservices.unsafe/6.1.0/system.runtime.compilerservices.unsafe.6.1.0.nupkg.sha512",
-    "/Users/mustafa/.nuget/packages/system.valuetuple/4.5.0/system.valuetuple.4.5.0.nupkg.sha512",
     "/Users/mustafa/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.28/microsoft.windowsdesktop.app.ref.8.0.28.nupkg.sha512"
   ],
-  "logs": [
-    {
-      "code": "NU1701",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Package 'H.NotifyIcon.Wpf 2.4.1' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0-windows7.0'. This package may not be fully compatible with your project.",
-      "libraryId": "H.NotifyIcon.Wpf",
-      "targetGraphs": [
-        "net8.0-windows7.0"
-      ]
-    }
-  ]
+  "logs": []
 }

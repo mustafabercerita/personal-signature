@@ -19,10 +19,32 @@
             <TextBlock Grid.Row="0" Text="Ponten Signatures" Foreground="White" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
             
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                <StackPanel x:Name="SignaturesList">
-                    <!-- Active signatures will go here -->
-                    <TextBlock Text="No signatures yet." Foreground="Gray" FontStyle="Italic" HorizontalAlignment="Center" Margin="0,20,0,0"/>
-                </StackPanel>
+                <Grid>
+                    <TextBlock x:Name="EmptyStateText" Text="No signatures yet." Foreground="Gray" FontStyle="Italic" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+                    <ListBox x:Name="SignaturesListBox" Background="Transparent" BorderThickness="0" 
+                             SelectionChanged="SignaturesListBox_SelectionChanged"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#2A2A2A" CornerRadius="4" Margin="0,0,0,5" Padding="5">
+                                    <Image Source="{Binding ImageSource}" Stretch="Uniform" Height="60"/>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="#444444"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                </Grid>
             </ScrollViewer>
             
             <Button Grid.Row="2" Content="Add Signature" Background="#007ACC" Foreground="White" BorderThickness="0" Padding="5" Margin="0,10,0,0" Click="AddSignature_Click"/>

@@ -79,6 +79,35 @@ public partial class App : Application
                 Log("Fallback to IconSource with BitmapImage.");
             }
 
+            // Setup Context Menu
+            var contextMenu = new System.Windows.Controls.ContextMenu();
+            
+            var openItem = new System.Windows.Controls.MenuItem { Header = "Open Ponten" };
+            openItem.Click += (s, ev) => ShowMainWindow();
+            contextMenu.Items.Add(openItem);
+            
+            var addSignItem = new System.Windows.Controls.MenuItem { Header = "Add Signature..." };
+            addSignItem.Click += (s, ev) => 
+            {
+                (MainWindow as MenuBarView)?.TriggerAddSignature();
+            };
+            contextMenu.Items.Add(addSignItem);
+            
+            var drawSignItem = new System.Windows.Controls.MenuItem { Header = "Draw Signature..." };
+            drawSignItem.Click += (s, ev) => 
+            {
+                (MainWindow as MenuBarView)?.TriggerDrawSignature();
+            };
+            contextMenu.Items.Add(drawSignItem);
+            
+            contextMenu.Items.Add(new System.Windows.Controls.Separator());
+            
+            var quitItem = new System.Windows.Controls.MenuItem { Header = "Quit Ponten" };
+            quitItem.Click += (s, ev) => Current.Shutdown();
+            contextMenu.Items.Add(quitItem);
+
+            notifyIcon.ContextMenu = contextMenu;
+
             notifyIcon.TrayLeftMouseUp += NotifyIcon_TrayLeftMouseUp;
             
             Log("Calling ForceCreate(false)...");
@@ -106,9 +135,21 @@ public partial class App : Application
             }
             else
             {
-                MainWindow.Show();
-                MainWindow.Activate();
+                ShowMainWindow();
             }
+        }
+    }
+
+    private void ShowMainWindow()
+    {
+        if (MainWindow is MenuBarView menuBarView)
+        {
+            menuBarView.ShowAtBottomRight();
+        }
+        else
+        {
+            MainWindow?.Show();
+            MainWindow?.Activate();
         }
     }
     

@@ -14,6 +14,17 @@ namespace PontenWPF
         private CancellationTokenSource? _debounceCts;
         private Bitmap? _originalImage;
 
+        public Action<Bitmap>? OnSave { get; set; }
+        private Bitmap? _currentProcessedBitmap;
+
+        public ImageEditorWindow(Bitmap originalImage)
+        {
+            InitializeComponent();
+            _originalImage = new Bitmap(originalImage);
+            DebounceUpdate();
+        }
+
+        // Keep default constructor for backward compatibility if needed
         public ImageEditorWindow()
         {
             InitializeComponent();
@@ -29,6 +40,20 @@ namespace PontenWPF
                 g.Clear(System.Drawing.Color.White);
                 g.DrawString("Sample Signature", new System.Drawing.Font("Arial", 24), System.Drawing.Brushes.Black, new PointF(50, 100));
             }
+        }
+
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentProcessedBitmap != null)
+            {
+                OnSave?.Invoke(new Bitmap(_currentProcessedBitmap));
+            }
+            this.Close();
+        }
+
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            this.Close();
         }
 
         private void OnSliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -116,6 +141,11 @@ namespace PontenWPF
 
                 Application.Current.Dispatcher.Invoke(() =>
                 {
+                    if (_currentProcessedBitmap != null && _currentProcessedBitmap != _originalImage)
+                    {
+                        _currentProcessedBitmap.Dispose();
+                    }
+                    _currentProcessedBitmap = new Bitmap(resultBmp);
                     PreviewImage.Source = imageSource;
                 });
             }
