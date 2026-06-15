@@ -6,6 +6,41 @@ class ImageProcessor {
     
     /// Shared CIContext to prevent expensive reallocations and Metal shader recompilations on every filter call
     private static let sharedCIContext = CIContext(options: nil)
+
+    private struct RGBABitmap {
+        var data: [UInt8]
+        let width: Int
+        let height: Int
+        let bytesPerRow: Int
+    }
+
+    private static func makeRGBABitmap(from image: NSImage) -> (bitmap: RGBABitmap, cgImage: CGImage)? {
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
+
+        let width = cgImage.width
+        let height = cgImage.height
+        guard width > 0, height > 0 else { return nil }
+
+        let bytesPerPixel = 4
+        let bytesPerRow = width * bytesPerPixel
+        var data = [UInt8](repeating: 0, count: height * bytesPerRow)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+
+        guard let context = CGContext(
+            data: &data,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return nil
+        }
+
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)))
+        return (RGBABitmap(data: data, width: width, height: height, bytesPerRow: bytesPerRow), cgImage)
+    }
     
     /// Thickens dark lines by rendering over a white background and applying morphological minimum
     static func thickenLines(image: NSImage, radius: Double) -> NSImage? {
@@ -43,11 +78,8 @@ class ImageProcessor {
     
     /// Adjusts contrast and brightness of an NSImage
     static func adjustColor(image: NSImage, contrast: Double, brightness: Double) -> NSImage? {
-        guard let tiffData = image.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData),
-              let ciImage = CIImage(bitmapImageRep: bitmap) else {
-            return nil
-        }
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
+        let ciImage = CIImage(cgImage: cgImage)
         
         let filter = CIFilter.colorControls()
         filter.inputImage = ciImage
@@ -70,8 +102,8 @@ class ImageProcessor {
         var rect = CGRect(origin: .zero, size: CGSize(width: cgImage.width, height: cgImage.height))
         rect = rect.applying(CGAffineTransform(rotationAngle: radians))
         
-        let newWidth = Int(rect.width)
-        let newHeight = Int(rect.height)
+        let newWidth = max(1, Int(ceil(abs(rect.width))))
+        let newHeight = max(1, Int(ceil(abs(rect.height))))
         
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let context = CGContext(
@@ -96,12 +128,13 @@ class ImageProcessor {
     }
     
     /// Automatically crops out purely white or transparent borders around the ink
-    static func autoTrimWhitespace(image: NSImage) -> NSImage? {
-        guard let tiffData = image.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData) else { return image }
+    static func autoTrimWhitespace(image: NSImage, padding: Int = 10) -> NSImage? {
+        guard let bitmapResult = makeRGBABitmap(from: image) else { return image }
         
-        let width = bitmap.pixelsWide
-        let height = bitmap.pixelsHigh
+        let bitmap = bitmapResult.bitmap
+        let width = bitmap.width
+        let height = bitmap.height
+        let bytesPerPixel = 4
         
         var minX = width
         var minY = height
@@ -110,13 +143,18 @@ class ImageProcessor {
         var hasInk = false
         
         for y in 0..<height {
+            let rowOffset = y * bitmap.bytesPerRow
             for x in 0..<width {
-                guard let color = bitmap.colorAt(x: x, y: y) else { continue }
+                let offset = rowOffset + (x * bytesPerPixel)
+                let red = bitmap.data[offset]
+                let green = bitmap.data[offset + 1]
+                let blue = bitmap.data[offset + 2]
+                let alpha = bitmap.data[offset + 3]
                 
                 // If it's transparent, skip
-                if color.alphaComponent < 0.05 { continue }
+                if alpha < 13 { continue }
                 // If it's very white, skip
-                if color.redComponent > 0.94 && color.greenComponent > 0.94 && color.blueComponent > 0.94 { continue }
+                if red > 240 && green > 240 && blue > 240 { continue }
                 
                 // It's ink!
                 hasInk = true
@@ -129,16 +167,13 @@ class ImageProcessor {
         
         if !hasInk { return image }
         
-        // Add a small padding
-        let padding = 10
         minX = max(0, minX - padding)
         minY = max(0, minY - padding)
         maxX = min(width - 1, maxX + padding)
         maxY = min(height - 1, maxY + padding)
         
         let cropRect = CGRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1)
-        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil),
-              let croppedCGImage = cgImage.cropping(to: cropRect) else { return nil }
+        guard let croppedCGImage = bitmapResult.cgImage.cropping(to: cropRect) else { return nil }
         
         return NSImage(cgImage: croppedCGImage, size: NSSize(width: croppedCGImage.width, height: croppedCGImage.height))
     }

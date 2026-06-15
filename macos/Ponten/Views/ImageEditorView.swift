@@ -16,7 +16,7 @@ struct ImageEditorView: View {
     
     @State private var previewImage: NSImage?
     @State private var isProcessingPreview: Bool = false
-    @State private var previewUpdateTask: Task<Void, Never>?
+    @State private var previewUpdateWorkItem: DispatchWorkItem?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -157,10 +157,13 @@ struct ImageEditorView: View {
         .onChange(of: rotation) { _ in updatePreview() }
         .onChange(of: autoTrim) { _ in updatePreview() }
         .onChange(of: removeBackground) { _ in updatePreview() }
+        .onDisappear {
+            previewUpdateWorkItem?.cancel()
+        }
     }
     
     private func updatePreview() {
-        previewUpdateTask?.cancel()
+        previewUpdateWorkItem?.cancel()
         
         let currentContrast = contrast
         let currentBrightness = brightness
@@ -169,64 +172,66 @@ struct ImageEditorView: View {
         let currentAutoTrim = autoTrim
         let currentRemoveBg = removeBackground
         
-        previewUpdateTask = Task {
-            // Debounce to prevent thread explosion during slider drag
-            try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
-            guard !Task.isCancelled else { return }
-            
-            await MainActor.run { isProcessingPreview = true }
-            
-            let finalImage = await Task.detached(priority: .userInitiated) { () -> NSImage? in
-                var img = sourceImage
-                
-                // 0. Thicken Lines
-                if currentThicken > 0 {
-                    if let thickened = ImageProcessor.thickenLines(image: img, radius: currentThicken) {
-                        img = thickened
-                    }
-                }
-                guard !Task.isCancelled else { return nil }
-                
-                // 1. Color Adjustments
-                if let colorAdjusted = ImageProcessor.adjustColor(image: img, contrast: currentContrast, brightness: currentBrightness) {
-                    img = colorAdjusted
-                }
-                guard !Task.isCancelled else { return nil }
-                
-                // 2. Rotation
-                if currentRotation != 0 {
-                    if let rotated = ImageProcessor.rotate(image: img, degrees: CGFloat(currentRotation)) {
-                        img = rotated
-                    }
-                }
-                guard !Task.isCancelled else { return nil }
-                
-                // 3. Remove Background
-                if currentRemoveBg {
-                    if let removed = img.removingWhiteBackground() {
-                        img = removed
-                    }
-                }
-                guard !Task.isCancelled else { return nil }
-                
-                // 4. Auto-Trim
-                if currentAutoTrim {
-                    if let trimmed = ImageProcessor.autoTrimWhitespace(image: img) {
-                        img = trimmed
-                    }
-                }
-                
-                return img
-            }.value
-            
-            guard !Task.isCancelled else { return }
-            
-            if let finalImage = finalImage {
-                await MainActor.run {
-                    self.previewImage = finalImage
-                    self.isProcessingPreview = false
+        var workItem: DispatchWorkItem?
+        workItem = DispatchWorkItem { [sourceImage] in
+            guard workItem?.isCancelled == false else { return }
+
+            DispatchQueue.main.async {
+                guard workItem?.isCancelled == false else { return }
+                isProcessingPreview = true
+            }
+
+            var img = sourceImage
+
+            // 0. Thicken Lines
+            if currentThicken > 0 {
+                if let thickened = ImageProcessor.thickenLines(image: img, radius: currentThicken) {
+                    img = thickened
                 }
             }
+            guard workItem?.isCancelled == false else { return }
+
+            // 1. Color Adjustments
+            if let colorAdjusted = ImageProcessor.adjustColor(image: img, contrast: currentContrast, brightness: currentBrightness) {
+                img = colorAdjusted
+            }
+            guard workItem?.isCancelled == false else { return }
+
+            // 2. Rotation
+            if currentRotation != 0 {
+                if let rotated = ImageProcessor.rotate(image: img, degrees: CGFloat(currentRotation)) {
+                    img = rotated
+                }
+            }
+            guard workItem?.isCancelled == false else { return }
+
+            // 3. Remove Background
+            if currentRemoveBg {
+                if let removed = img.removingWhiteBackground() {
+                    img = removed
+                }
+            }
+            guard workItem?.isCancelled == false else { return }
+
+            // 4. Auto-Trim
+            if currentAutoTrim {
+                let dynamicPadding = max(10, Int(ceil(currentThicken)) + 12)
+                if let trimmed = ImageProcessor.autoTrimWhitespace(image: img, padding: dynamicPadding) {
+                    img = trimmed
+                }
+            }
+
+            DispatchQueue.main.async {
+                guard workItem?.isCancelled == false else { return }
+                previewImage = img
+                isProcessingPreview = false
+            }
+        }
+
+        previewUpdateWorkItem = workItem
+        if let workItem {
+            // Debounce to avoid queueing expensive filters while the user drags sliders.
+            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.1, execute: workItem)
         }
     }
     
@@ -240,7 +245,7 @@ struct ImageEditorView: View {
         
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                try manager.saveSignature(image: finalImage, removeBackground: false, vectorize: removeBackground, overwriteID: targetID)
+                try manager.saveSignature(image: finalImage, removeBackground: false, vectorize: false, overwriteID: targetID)
                 DispatchQueue.main.async {
                     manager.isProcessing = false
                 }

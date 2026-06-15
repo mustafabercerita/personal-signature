@@ -18,12 +18,12 @@ final class SignatureManagerTests: XCTestCase {
         // We test via the shared singleton because SignatureManager is a singleton.
         // Clean state before each test.
         manager = SignatureManager.shared
-        manager.deleteSignature()
+        deleteAllSignatures()
     }
 
     override func tearDownWithError() throws {
         try? FileManager.default.removeItem(at: testDirectory)
-        manager.deleteSignature()
+        deleteAllSignatures()
         try super.tearDownWithError()
     }
 
@@ -45,6 +45,12 @@ final class SignatureManagerTests: XCTestCase {
         }
         try png.write(to: url)
         return url
+    }
+
+    private func deleteAllSignatures() {
+        for id in manager.signatures.map(\.item.id) {
+            manager.deleteSignature(id: id)
+        }
     }
 
     // MARK: - Tests
@@ -154,5 +160,22 @@ final class SignatureManagerTests: XCTestCase {
             exp2.fulfill()
         }
         wait(for: [exp2], timeout: 1.0)
+    }
+
+    func testDeletingInactiveSignatureKeepsActiveSignature() throws {
+        let url1 = try makePNGFile(named: "sig1.png")
+        let url2 = try makePNGFile(named: "sig2.png")
+
+        try manager.saveSignature(from: url1)
+        let firstID = try XCTUnwrap(manager.activeSignatureID)
+
+        try manager.saveSignature(from: url2)
+        let activeID = try XCTUnwrap(manager.activeSignatureID)
+        XCTAssertNotEqual(firstID, activeID)
+
+        manager.deleteSignature(id: firstID)
+
+        XCTAssertEqual(manager.activeSignatureID, activeID)
+        XCTAssertNotNil(manager.signatureImage)
     }
 }

@@ -193,7 +193,7 @@ final class SignatureManager: ObservableObject {
 
         let item = SignatureItem(id: targetID, filename: filename, name: existingItem?.name)
         
-        DispatchQueue.main.async { [weak self] in
+        let updateState = { [weak self] in
             guard let self = self else { return }
             if isOverwriting {
                 if let idx = self.signatures.firstIndex(where: { $0.item.id == targetID }) {
@@ -202,8 +202,17 @@ final class SignatureManager: ObservableObject {
             } else {
                 self.signatures.append((item, img))
             }
-            self.activeSignatureID = targetID
-            self.saveIndex()
+            if self.activeSignatureID == targetID {
+                self.saveIndex()
+            } else {
+                self.activeSignatureID = targetID
+            }
+        }
+
+        if Thread.isMainThread {
+            updateState()
+        } else {
+            DispatchQueue.main.sync(execute: updateState)
         }
     }
 
@@ -324,6 +333,7 @@ final class SignatureManager: ObservableObject {
 
     func deleteSignature(id targetID: UUID? = nil) {
         guard let id = targetID ?? activeSignatureID else { return }
+        let deletedActiveSignature = activeSignatureID == id
         
         // Remove file from disk
         if let itemToRemove = signatures.first(where: { $0.item.id == id })?.item {
@@ -332,12 +342,13 @@ final class SignatureManager: ObservableObject {
         }
         
         signatures.removeAll { $0.item.id == id }
-        if let first = signatures.first {
+        if signatures.isEmpty {
+            activeSignatureID = nil
+        } else if deletedActiveSignature, let first = signatures.first {
             activeSignatureID = first.item.id
         } else {
-            activeSignatureID = nil
+            saveIndex()
         }
-        saveIndex()
         // The index handles it. 
     }
     
