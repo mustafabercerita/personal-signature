@@ -16,6 +16,7 @@ struct ImageEditorView: View {
     
     @State private var previewImage: NSImage?
     @State private var isProcessingPreview: Bool = false
+    @State private var previewUpdateTask: Task<Void, Never>?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -159,7 +160,7 @@ struct ImageEditorView: View {
     }
     
     private func updatePreview() {
-        isProcessingPreview = true
+        previewUpdateTask?.cancel()
         
         let currentContrast = contrast
         let currentBrightness = brightness
@@ -168,7 +169,13 @@ struct ImageEditorView: View {
         let currentAutoTrim = autoTrim
         let currentRemoveBg = removeBackground
         
-        DispatchQueue.global(qos: .userInitiated).async {
+        previewUpdateTask = Task {
+            // Debounce to prevent thread explosion during slider drag
+            try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+            guard !Task.isCancelled else { return }
+            
+            await MainActor.run { isProcessingPreview = true }
+            
             var img = sourceImage
             
             // 0. Thicken Lines
@@ -177,11 +184,13 @@ struct ImageEditorView: View {
                     img = thickened
                 }
             }
+            guard !Task.isCancelled else { return }
             
             // 1. Color Adjustments
             if let colorAdjusted = ImageProcessor.adjustColor(image: img, contrast: currentContrast, brightness: currentBrightness) {
                 img = colorAdjusted
             }
+            guard !Task.isCancelled else { return }
             
             // 2. Rotation
             if currentRotation != 0 {
@@ -189,15 +198,15 @@ struct ImageEditorView: View {
                     img = rotated
                 }
             }
+            guard !Task.isCancelled else { return }
             
-            // 3. Remove Background & Vectorize preview (Optional)
-            // For preview, we only do the removeBackground if requested, vectorize can be heavy so we just do it on final save,
-            // or we can do it here. Ponten uses `removingWhiteBackground()`
+            // 3. Remove Background
             if currentRemoveBg {
                 if let removed = img.removingWhiteBackground() {
                     img = removed
                 }
             }
+            guard !Task.isCancelled else { return }
             
             // 4. Auto-Trim
             if currentAutoTrim {
@@ -206,8 +215,11 @@ struct ImageEditorView: View {
                 }
             }
             
-            DispatchQueue.main.async {
-                self.previewImage = img
+            guard !Task.isCancelled else { return }
+            
+            let finalImage = img
+            await MainActor.run {
+                self.previewImage = finalImage
                 self.isProcessingPreview = false
             }
         }
