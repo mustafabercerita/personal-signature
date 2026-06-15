@@ -121,7 +121,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            dist/*.dmg
+            macos/dist/*.dmg
             dist/Ponten-Windows.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

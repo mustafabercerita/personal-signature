@@ -109,8 +109,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 // Build the bash script
                 let scriptContent = """
                 #!/bin/bash
+                
                 # Wait for the app to terminate
-                sleep 2
+                while pgrep -x "Ponten" > /dev/null; do
+                    sleep 1
+                done
+                
+                # Detach any existing stuck mounts
+                hdiutil detach "/Volumes/PontenUpdate" -force 2>/dev/null || true
                 
                 # Mount the DMG
                 hdiutil attach "\(dmgDestination.path)" -mountpoint "/Volumes/PontenUpdate" -nobrowse
