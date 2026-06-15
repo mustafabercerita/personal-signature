@@ -3,6 +3,7 @@ name: CI — Build & Test
 on:
   push:
     branches: [ main, develop ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
 
@@ -84,3 +85,41 @@ jobs:
           name: Ponten-Windows-${{ github.sha }}
           path: windows/PontenWPF/bin/Release/net8.0-windows/
           retention-days: 14
+
+  release:
+    name: Create Release
+    needs: [build-macos, build-windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+      - name: Build macOS DMG
+        run: |
+          cd macos
+          chmod +x build-dmg.sh
+          ./build-dmg.sh
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build Windows EXE
+        run: |
+          cd windows
+          dotnet publish Ponten.sln -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          mv PontenWPF/bin/Release/net8.0-windows/win-x64/publish/PontenWPF.exe ../dist/Ponten-Windows.exe
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/*.dmg
+            dist/Ponten-Windows.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
