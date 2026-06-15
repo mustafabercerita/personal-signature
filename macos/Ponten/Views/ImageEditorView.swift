@@ -11,6 +11,8 @@ struct ImageEditorView: View {
     @State private var rotation: Double = 0
     @State private var autoTrim: Bool = true
     @State private var removeBackground: Bool = true
+    @State private var previewWhiteBackground: Bool = true
+    @State private var zoomLevel: Double = 1.0
     
     @State private var previewImage: NSImage?
     @State private var isProcessingPreview: Bool = false
@@ -37,13 +39,16 @@ struct ImageEditorView: View {
             
             // Preview Area
             ZStack {
-                Color(NSColor.controlBackgroundColor)
+                Color(previewWhiteBackground ? NSColor.white : NSColor.controlBackgroundColor)
                 
                 if let img = previewImage {
-                    Image(nsImage: img)
-                        .resizable()
-                        .scaledToFit()
-                        .padding(20)
+                    ScrollView([.horizontal, .vertical], showsIndicators: true) {
+                        Image(nsImage: img)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 360 * zoomLevel)
+                            .padding(20)
+                    }
                 }
                 
                 if isProcessingPreview {
@@ -99,9 +104,19 @@ struct ImageEditorView: View {
                         .frame(width: 30, alignment: .trailing)
                 }
                 
-                HStack(spacing: 24) {
-                    Toggle("Auto-Trim Margins", isOn: $autoTrim)
-                    Toggle("Remove Background", isOn: $removeBackground)
+                // Zoom Slider
+                HStack {
+                    Text("Zoom")
+                        .frame(width: 80, alignment: .leading)
+                    Slider(value: $zoomLevel, in: 0.5...5.0)
+                    Text(String(format: "%.1f x", zoomLevel))
+                        .frame(width: 30, alignment: .trailing)
+                }
+                
+                HStack(spacing: 16) {
+                    Toggle("Auto-Trim", isOn: $autoTrim)
+                    Toggle("Remove Bg", isOn: $removeBackground)
+                    Toggle("White Canvas", isOn: $previewWhiteBackground)
                 }
                 .padding(.top, 4)
             }
