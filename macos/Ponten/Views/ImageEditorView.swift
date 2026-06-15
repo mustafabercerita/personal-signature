@@ -63,17 +63,21 @@ struct ImageEditorView: View {
             
             // Controls
             VStack(spacing: 16) {
-                // Rotation
+                // Rotation Slider
                 HStack {
                     Text("Rotate")
                         .frame(width: 80, alignment: .leading)
-                    Button(action: { rotation -= 90 }) {
-                        Image(systemName: "rotate.left")
+                    Slider(value: $rotation, in: -180.0...180.0)
+                    Text(String(format: "%.0f°", rotation))
+                        .frame(width: 40, alignment: .trailing)
+                    
+                    // Reset Button
+                    Button(action: { rotation = 0 }) {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.system(size: 10))
                     }
-                    Button(action: { rotation += 90 }) {
-                        Image(systemName: "rotate.right")
-                    }
-                    Spacer()
+                    .buttonStyle(.plain)
+                    .help("Reset Rotation")
                 }
                 
                 // Contrast Slider
