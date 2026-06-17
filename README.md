@@ -94,7 +94,7 @@ This is the easiest way to install.
 1. Go to the [Releases](https://github.com/mustafabercerita/ponten/releases) page.
 2. Download `Ponten-1.2.12.dmg` (for Mac) or `Ponten-Setup-1.2.12.exe` (for Windows installer).
 3. **Mac**: Open the downloaded file and drag the **Ponten** icon into the **Applications** folder.
-4. **Windows**: Run `Ponten-Setup-1.2.12.exe` to install the app. It will create a Start Menu shortcut, register the uninstaller, and quietly launch in your System Tray. *(A portable `.exe` is also available if you prefer no installation).*
+4. **Windows**: Run `Ponten-Setup-1.2.12.exe` to install the app. It will create a Start Menu shortcut, register the uninstaller, and quietly launch in your System Tray.
 
 > **Note for Mac users**: Because this is an open-source app signed ad-hoc, you may need to right-click the app and choose **Open** the first time you run it to bypass macOS Gatekeeper.
 
@@ -255,7 +255,7 @@ Release history: [CHANGELOG.md](CHANGELOG.md) · Developer setup: [DEVELOPMENT.m
 CI runs on pushes to `main` and `develop`, and on pull requests targeting `main`.  
 Pushing a tag matching `v*` triggers a GitHub Actions release that:
 - Builds macOS DMG and runs tests
-- Builds Windows `.exe` using `.NET 8` as a single self-contained file
+- Builds Windows installer (`Ponten-Setup-X.Y.Z.exe`) via Inno Setup
 - Publishes assets automatically to GitHub Releases
 
 ---

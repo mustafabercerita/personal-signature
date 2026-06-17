@@ -45,7 +45,8 @@ dotnet publish PontenWPF/PontenWPF.csproj -c Release -r win-x64 \
   --self-contained true -p:PublishSingleFile=true
 ```
 
-Installer: Inno Setup `windows/installer.iss` → `dist/Ponten-Setup-X.Y.Z.exe` (Windows only).
+Publish produces `dist/Ponten-Windows.exe` (build intermediate for the installer).  
+Release artifact: Inno Setup `windows/installer.iss` → `dist/Ponten-Setup-X.Y.Z.exe` (installer only — no portable release).
 
 ---
 

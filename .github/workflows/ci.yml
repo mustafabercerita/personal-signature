@@ -146,6 +146,6 @@ jobs:
         with:
           files: |
             macos/dist/*.dmg
-            dist/*.exe
+            dist/Ponten-Setup-*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
