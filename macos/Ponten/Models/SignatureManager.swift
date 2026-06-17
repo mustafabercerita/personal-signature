@@ -65,6 +65,7 @@ final class SignatureManager: ObservableObject {
     }
 
     private var toastTimer: Timer?
+    var toastDuration: TimeInterval = 2.5
 
     // MARK: - Storage
 
@@ -317,15 +318,20 @@ final class SignatureManager: ObservableObject {
 
     func showToast(_ message: String) {
         toastTimer?.invalidate()
-        DispatchQueue.main.async { [weak self] in
-            self?.toastMessage = message
-            let timer = Timer(timeInterval: 2.5, repeats: false) { [weak self] _ in
-                DispatchQueue.main.async {
-                    self?.toastMessage = nil
-                }
+        let duration = toastDuration
+        let presentToast = { [weak self] in
+            guard let self else { return }
+            self.toastMessage = message
+            let timer = Timer(timeInterval: duration, repeats: false) { [weak self] _ in
+                self?.toastMessage = nil
             }
             RunLoop.main.add(timer, forMode: .common)
-            self?.toastTimer = timer
+            self.toastTimer = timer
+        }
+        if Thread.isMainThread {
+            presentToast()
+        } else {
+            DispatchQueue.main.async(execute: presentToast)
         }
     }
 }

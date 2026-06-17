@@ -1,7 +1,6 @@
 import XCTest
 @testable import Ponten
 
-@MainActor
 final class SignatureManagerTests: XCTestCase {
 
     var manager: SignatureManager!
@@ -10,6 +9,7 @@ final class SignatureManagerTests: XCTestCase {
 
     // MARK: - Setup / Teardown
 
+    @MainActor
     override func setUpWithError() throws {
         try super.setUpWithError()
         testDirectory = FileManager.default.temporaryDirectory
@@ -20,6 +20,7 @@ final class SignatureManagerTests: XCTestCase {
         manager = SignatureManager(store: testStore)
     }
 
+    @MainActor
     override func tearDownWithError() throws {
         try? FileManager.default.removeItem(at: testDirectory)
         try super.tearDownWithError()
@@ -28,6 +29,7 @@ final class SignatureManagerTests: XCTestCase {
     // MARK: - Helpers
 
     /// Creates a minimal valid PNG with white edges in the test directory.
+    @MainActor
     private func makePNGFile(named name: String = "test_signature.png") throws -> URL {
         let url = testDirectory.appendingPathComponent(name)
         let image = NSImage(size: NSSize(width: 200, height: 80))
@@ -49,16 +51,19 @@ final class SignatureManagerTests: XCTestCase {
 
     // MARK: - Tests
 
+    @MainActor
     func testInitialStateHasNoSignature() {
         XCTAssertNil(manager.signatureImage, "Should start with no signature")
     }
 
+    @MainActor
     func testSaveValidPNGLoadsImage() throws {
         let url = try makePNGFile()
         XCTAssertNoThrow(try manager.saveSignature(from: url))
         XCTAssertNotNil(manager.signatureImage)
     }
 
+    @MainActor
     func testSaveInvalidPathThrowsError() {
         let badURL = URL(fileURLWithPath: "/nonexistent/path/signature.png")
         XCTAssertThrowsError(try manager.saveSignature(from: badURL)) { error in
@@ -66,6 +71,7 @@ final class SignatureManagerTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testDeleteSignatureClearsImage() throws {
         let url = try makePNGFile()
         try manager.saveSignature(from: url)
@@ -75,11 +81,13 @@ final class SignatureManagerTests: XCTestCase {
         XCTAssertNil(manager.signatureImage)
     }
 
+    @MainActor
     func testCopyToClipboardReturnsFalseWithNoSignature() {
         let result = manager.copySignatureToClipboard()
         XCTAssertFalse(result, "Should return false when no signature is set")
     }
 
+    @MainActor
     func testCopyToClipboardReturnsTrueWithSignature() throws {
         let url = try makePNGFile()
         try manager.saveSignature(from: url)
@@ -91,22 +99,21 @@ final class SignatureManagerTests: XCTestCase {
         XCTAssertTrue(hasImage, "Pasteboard should contain an image")
     }
 
+    @MainActor
     func testToastMessageClearsAfterDelay() {
+        manager.toastDuration = 0.3
         manager.showToast("Test toast")
+        XCTAssertEqual(manager.toastMessage, "Test toast")
 
-        let predicateSet = NSPredicate { _, _ in
-            self.manager.toastMessage != nil
+        let exp = expectation(description: "toast clears")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            XCTAssertNil(self.manager.toastMessage)
+            exp.fulfill()
         }
-        let expSet = XCTNSPredicateExpectation(predicate: predicateSet, object: nil)
-        wait(for: [expSet], timeout: 2.0)
-
-        let predicateClear = NSPredicate { _, _ in
-            self.manager.toastMessage == nil
-        }
-        let expClear = XCTNSPredicateExpectation(predicate: predicateClear, object: nil)
-        wait(for: [expClear], timeout: 5.0)
+        wait(for: [exp], timeout: 2.0)
     }
 
+    @MainActor
     func testReplacingSignatureUpdatesImage() throws {
         let url1 = try makePNGFile(named: "sig1.png")
         let url2 = try makePNGFile(named: "sig2.png")
@@ -120,6 +127,7 @@ final class SignatureManagerTests: XCTestCase {
         XCTAssertNotEqual(manager.activeSignatureID, firstID)
     }
 
+    @MainActor
     func testDeletingInactiveSignatureKeepsActiveSignature() throws {
         let url1 = try makePNGFile(named: "sig1.png")
         let url2 = try makePNGFile(named: "sig2.png")
