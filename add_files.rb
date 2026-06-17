@@ -36,6 +36,17 @@ Dir.glob("macos/Ponten/Utilities/*.swift").each do |file|
   target.add_file_references([file_ref])
 end
 
+# Add Utilities
+utilities_group = project.main_group.find_subpath(File.join('Ponten', 'Utilities'), true)
+Dir.glob("macos/Ponten/Utilities/*.swift").each do |file|
+  basename = File.basename(file)
+  next if utilities_group.files.any? { |f| f.path == basename }
+
+  puts "Adding utility #{basename}"
+  file_ref = utilities_group.new_file(basename)
+  target.add_file_references([file_ref])
+end
+
 # Also add Tests if missing
 test_target = project.targets.find { |t| t.name == 'PontenTests' }
 if test_target
@@ -47,6 +58,19 @@ if test_target
     puts "Adding test file #{basename}"
     file_ref = tests_group.new_file(basename)
     test_target.add_file_references([file_ref])
+  end
+end
+
+e2e_target = project.targets.find { |t| t.name == 'PontenE2ETests' }
+if e2e_target
+  e2e_group = project.main_group.find_subpath('PontenE2ETests', true)
+  Dir.glob("macos/PontenE2ETests/*.swift").each do |file|
+    basename = File.basename(file)
+    next if e2e_group.files.any? { |f| f.path == basename }
+
+    puts "Adding E2E test file #{basename}"
+    file_ref = e2e_group.new_file(basename)
+    e2e_target.add_file_references([file_ref])
   end
 end
 

@@ -7,10 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		11121088C09D15315CCFE69C /* E2EInProcessHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2411416A70CEA0740C21E207 /* E2EInProcessHost.swift */; };
 		1120A2BBD5F5CDEF342B0263 /* GlobalShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4636EB3E58AA004A68B3DE2 /* GlobalShortcutManager.swift */; };
-		A008 /* E2EMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = F012 /* E2EMode.swift */; };
-		B002 /* E2ETestFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = F013 /* E2ETestFixture.swift */; };
-		B003 /* MenuBarE2ETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F014 /* MenuBarE2ETests.swift */; };
 		1331B8C6458D4593AD8B54F3 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43484E7F379C374B0B69DF15 /* EmptyStateView.swift */; };
 		171BB0EA90A4FC55C5FD3537 /* ImageEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C7628AF5738F410268B6B01 /* ImageEditorView.swift */; };
 		472D05B59AD328CEBC0EC3E0 /* FooterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39AA7F404CE26C6EFA1DED02 /* FooterView.swift */; };
@@ -24,15 +22,36 @@
 		A005 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = F005 /* Components.swift */; };
 		A006 /* EventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F006 /* EventMonitor.swift */; };
 		A007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F008 /* Assets.xcassets */; };
+		A008 /* E2EMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = F012 /* E2EMode.swift */; };
 		B001 /* SignatureManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F010 /* SignatureManagerTests.swift */; };
+		B002 /* E2ETestFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = F013 /* E2ETestFixture.swift */; };
+		B003 /* MenuBarE2ETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F014 /* MenuBarE2ETests.swift */; };
 		C1D6B0461FDDF1E5F9E1EDB1 /* ImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D71898F773ACC800CD5B077 /* ImageProcessor.swift */; };
 		C5E489EB5810162538BA0D6C /* SignatureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF4B16AFA79F617EF93C299C /* SignatureStore.swift */; };
 		D5EDA8B94534507A56EAE3CF /* SignatureActiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD90A77DDFA4B3C1D9AD3B0C /* SignatureActiveView.swift */; };
 		DDCAFC6F19059A9BEDA211D3 /* DrawingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C80F754AF0AA1DECA02DF29D /* DrawingView.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		TP001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = PROJ000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = T000;
+			remoteInfo = Ponten;
+		};
+		TP002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = PROJ000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = T000;
+			remoteInfo = Ponten;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		0D71898F773ACC800CD5B077 /* ImageProcessor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ImageProcessor.swift; sourceTree = "<group>"; };
+		2411416A70CEA0740C21E207 /* E2EInProcessHost.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = E2EInProcessHost.swift; sourceTree = "<group>"; };
 		2679ED8624C7A36115C89115 /* HeaderView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HeaderView.swift; sourceTree = "<group>"; };
 		2C7628AF5738F410268B6B01 /* ImageEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ImageEditorView.swift; sourceTree = "<group>"; };
 		39AA7F404CE26C6EFA1DED02 /* FooterView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FooterView.swift; sourceTree = "<group>"; };
@@ -177,6 +196,7 @@
 			children = (
 				F013 /* E2ETestFixture.swift */,
 				F014 /* MenuBarE2ETests.swift */,
+				2411416A70CEA0740C21E207 /* E2EInProcessHost.swift */,
 			);
 			path = PontenE2ETests;
 			sourceTree = "<group>";
@@ -339,6 +359,7 @@
 			files = (
 				B002 /* E2ETestFixture.swift in Sources */,
 				B003 /* MenuBarE2ETests.swift in Sources */,
+				11121088C09D15315CCFE69C /* E2EInProcessHost.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -356,23 +377,6 @@
 			targetProxy = TP002 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
-
-/* Begin PBXContainerItemProxy section */
-		TP001 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = PROJ000 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = T000;
-			remoteInfo = Ponten;
-		};
-		TP002 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = PROJ000 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = T000;
-			remoteInfo = Ponten;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin XCBuildConfiguration section */
 		XCC001 /* Debug */ = {

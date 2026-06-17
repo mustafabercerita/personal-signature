@@ -100,7 +100,11 @@ final class MenuBarE2ETests: XCTestCase {
                 title: "Quit"
             )
             try fixture.press(quitButton)
-            try waitForProcessExit(pid: fixture.appPID, timeout: 10)
+            if E2ETestFixture.useInProcess {
+                XCTAssertNil(fixture.waitForMainWindow(timeout: 2))
+            } else {
+                try waitForProcessExit(pid: fixture.appPID, timeout: 10)
+            }
             E2ETestFixture.assertAutoPastePersisted(dataDirectory: dataDirectory)
         }
 
@@ -140,7 +144,11 @@ final class MenuBarE2ETests: XCTestCase {
         )
         try fixture.press(quitButton)
 
-        XCTAssertTrue(try waitForProcessExit(pid: fixture.appPID, timeout: 10))
+        if E2ETestFixture.useInProcess {
+            XCTAssertNil(fixture.waitForMainWindow(timeout: 2))
+        } else {
+            XCTAssertTrue(try waitForProcessExit(pid: fixture.appPID, timeout: 10))
+        }
     }
 
     // MARK: - Helpers

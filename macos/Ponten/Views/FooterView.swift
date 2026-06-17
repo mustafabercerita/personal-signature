@@ -84,7 +84,11 @@ struct FooterView: View {
                 }
                 
                 Button("Quit") {
-                    NSApp.terminate(nil)
+                    if E2EMode.isEnabled && E2EMode.isInProcess {
+                        NSApp.keyWindow?.close()
+                    } else {
+                        NSApp.terminate(nil)
+                    }
                 }
                 .buttonStyle(.plain)
                 .font(.caption)

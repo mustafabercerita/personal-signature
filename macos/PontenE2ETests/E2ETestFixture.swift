@@ -2,14 +2,22 @@ import AppKit
 import ApplicationServices
 import XCTest
 
-/// Shared harness for launching the real `Ponten.app` and driving it via Accessibility APIs.
+/// Shared harness for driving Ponten UI via Accessibility APIs.
+/// Uses in-process hosting on CI where cross-process AX is unavailable.
 /// Category: E2E — tests using this fixture must run serially (one Ponten instance at a time).
 final class E2ETestFixture {
 
     private static let serializationLock = NSLock()
 
+    static var useInProcess: Bool {
+        ProcessInfo.processInfo.environment["CI"] == "true"
+            || ProcessInfo.processInfo.environment["PONTEN_E2E_IN_PROCESS"] == "1"
+    }
+
     let dataDirectory: String
     private let deleteDataDirectoryOnDispose: Bool
+    private let usesInProcess: Bool
+    private var inProcessHost: E2EInProcessHost?
     private(set) var process: Process?
     private(set) var appPID: pid_t = 0
 
@@ -35,8 +43,13 @@ final class E2ETestFixture {
                 withIntermediateDirectories: true
             )
 
-            Self.killStalePontenProcesses()
-            try launchApp(dataDirectory: resolvedDirectory)
+            usesInProcess = Self.useInProcess
+            if usesInProcess {
+                try launchInProcess(dataDirectory: resolvedDirectory)
+            } else {
+                Self.killStalePontenProcesses()
+                try launchApp(dataDirectory: resolvedDirectory)
+            }
         } catch {
             Self.serializationLock.unlock()
             throw error
@@ -141,6 +154,50 @@ final class E2ETestFixture {
         return nil
     }
 
+    private func launchInProcess(dataDirectory: String) throws {
+        setenv("PONTEN_E2E", "1", 1)
+        setenv("PONTEN_DATA_DIR", dataDirectory, 1)
+        setenv("PONTEN_E2E_IN_PROCESS", "1", 1)
+
+        var launchError: Error?
+        let semaphore = DispatchSemaphore(value: 0)
+        DispatchQueue.main.async {
+            do {
+                Self.ensureTestApplication()
+                self.inProcessHost = E2EInProcessHost(dataDirectory: dataDirectory)
+                self.appPID = ProcessInfo.processInfo.processIdentifier
+            } catch {
+                launchError = error
+            }
+            semaphore.signal()
+        }
+        semaphore.wait()
+
+        if let launchError {
+            throw launchError
+        }
+
+        let deadline = Date().addingTimeInterval(10)
+        while Date() < deadline {
+            if waitForMainWindow(timeout: 0.5) != nil {
+                return
+            }
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+
+        throw NSError(
+            domain: "PontenE2E",
+            code: 3,
+            userInfo: [NSLocalizedDescriptionKey: "In-process Ponten window was not found."]
+        )
+    }
+
+    private static func ensureTestApplication() {
+        let app = NSApplication.shared
+        app.setActivationPolicy(.regular)
+        app.activate(ignoringOtherApps: true)
+    }
+
     private func launchApp(dataDirectory: String) throws {
         let appBundle = try Self.resolveAppBundle()
 
@@ -186,18 +243,26 @@ final class E2ETestFixture {
     }
 
     private func terminateApp() {
-        if appPID != 0,
-           let running = NSRunningApplication(processIdentifier: appPID),
-           !running.isTerminated {
+        if usesInProcess {
+            let semaphore = DispatchSemaphore(value: 0)
+            DispatchQueue.main.async {
+                self.inProcessHost?.close()
+                self.inProcessHost = nil
+                semaphore.signal()
+            }
+            semaphore.wait()
+        } else if appPID != 0,
+                  let running = NSRunningApplication(processIdentifier: appPID),
+                  !running.isTerminated {
             running.terminate()
             _ = running.waitUntilTerminated(timeout: 5)
             if !running.isTerminated {
                 running.forceTerminate()
                 _ = running.waitUntilTerminated(timeout: 3)
             }
+            Self.killStalePontenProcesses()
         }
 
-        Self.killStalePontenProcesses()
         process = nil
         appPID = 0
     }
