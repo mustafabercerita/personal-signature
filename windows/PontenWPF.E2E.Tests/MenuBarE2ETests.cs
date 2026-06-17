@@ -1,4 +1,5 @@
 using FlaUI.Core.AutomationElements;
+using FlaUI.Core.Definitions;
 
 namespace PontenWPF.E2E.Tests;
 
@@ -15,9 +16,8 @@ public class MenuBarE2ETests
         using var fixture = new E2ETestFixture();
         var window = fixture.WaitForMainWindow();
 
-        var emptyState = fixture.RequireElement(window, "EmptyState");
+        var emptyState = fixture.RequireElement(window, cf => cf.ByName("No signatures yet."));
         Assert.True(emptyState.IsAvailable);
-        Assert.Contains("No signatures", emptyState.Name, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -29,8 +29,7 @@ public class MenuBarE2ETests
         using var fixture = new E2ETestFixture(dataDirectory);
         var window = fixture.WaitForMainWindow();
 
-        var signaturesList = fixture.RequireElement(window, "SignaturesList");
-        var listItem = signaturesList.FindFirstDescendant(cf => cf.ByName("E2E Signature"));
+        var listItem = fixture.RequireElement(window, cf => cf.ByName("E2E Signature"));
         Assert.NotNull(listItem);
     }
 
@@ -43,10 +42,13 @@ public class MenuBarE2ETests
         using var fixture = new E2ETestFixture(dataDirectory);
         var window = fixture.WaitForMainWindow();
 
-        var signButton = fixture.RequireElement(window, "SignButton").AsButton();
+        var signButton = fixture.RequireElement(window, cf => cf.ByName("Sign")).AsButton();
         signButton.Invoke();
 
-        var statusText = fixture.RequireElement(window, "StatusText", TimeSpan.FromSeconds(5));
+        var statusText = fixture.RequireElement(
+            window,
+            cf => cf.ByControlType(ControlType.Text).And(cf.ByName("Signature copied ✓")),
+            TimeSpan.FromSeconds(5));
         Assert.Contains("copied", statusText.Name, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -59,21 +61,26 @@ public class MenuBarE2ETests
         using (var fixture = new E2ETestFixture(dataDirectory))
         {
             var window = fixture.WaitForMainWindow();
-            var autoPaste = fixture.RequireElement(window, "AutoPasteCheck").AsCheckBox();
+            var autoPaste = fixture.RequireElement(
+                window,
+                cf => cf.ByControlType(ControlType.CheckBox).And(cf.ByName("Auto-paste after copying"))).AsCheckBox();
+
             if (!autoPaste.IsChecked.GetValueOrDefault())
             {
                 autoPaste.Click();
                 Thread.Sleep(300);
             }
 
-            var quitButton = fixture.RequireElement(window, "QuitButton").AsButton();
+            var quitButton = fixture.RequireElement(window, cf => cf.ByName("Quit")).AsButton();
             quitButton.Invoke();
             fixture.Application.WaitWhileBusy(TimeSpan.FromSeconds(10));
         }
 
         using var restarted = new E2ETestFixture(dataDirectory);
         var restartedWindow = restarted.WaitForMainWindow();
-        var restartedAutoPaste = restarted.RequireElement(restartedWindow, "AutoPasteCheck").AsCheckBox();
+        var restartedAutoPaste = restarted.RequireElement(
+            restartedWindow,
+            cf => cf.ByControlType(ControlType.CheckBox).And(cf.ByName("Auto-paste after copying"))).AsCheckBox();
         Assert.True(restartedAutoPaste.IsChecked);
     }
 
@@ -83,7 +90,7 @@ public class MenuBarE2ETests
         using var fixture = new E2ETestFixture();
         var window = fixture.WaitForMainWindow();
 
-        var quitButton = fixture.RequireElement(window, "QuitButton").AsButton();
+        var quitButton = fixture.RequireElement(window, cf => cf.ByName("Quit")).AsButton();
         quitButton.Invoke();
 
         var exited = fixture.Application.WaitWhileBusy(TimeSpan.FromSeconds(10));

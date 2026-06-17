@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using FlaUI.Core;
 using FlaUI.Core.AutomationElements;
+using FlaUI.Core.Conditions;
 using FlaUI.UIA3;
 using PontenWPF;
 
@@ -98,7 +99,7 @@ public sealed class E2ETestFixture : IDisposable
             }
 
             var window = FindPontenWindow(Application.GetAllTopLevelWindows(Automation))
-                ?? FindPontenWindow(Automation.GetDesktop().FindAllChildren());
+                ?? FindPontenWindow(Automation.GetDesktop().FindAllChildren(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Window)));
             if (window != null)
             {
                 return window.AsWindow();
@@ -131,8 +132,7 @@ public sealed class E2ETestFixture : IDisposable
     {
         foreach (var window in windows)
         {
-            var automationId = window.Properties.AutomationId.ValueOrDefault;
-            if (automationId == "PontenMainWindow" || window.Name == "Ponten Menu")
+            if (window.Name == "Ponten Menu")
             {
                 return window;
             }
@@ -141,14 +141,17 @@ public sealed class E2ETestFixture : IDisposable
         return null;
     }
 
-    public AutomationElement RequireElement(Window window, string automationId, TimeSpan? timeout = null)
+    public AutomationElement RequireElement(
+        Window window,
+        Func<ConditionFactory, ConditionBase> condition,
+        TimeSpan? timeout = null)
     {
         timeout ??= TimeSpan.FromSeconds(10);
         var deadline = DateTime.UtcNow.Add(timeout.Value);
 
         while (DateTime.UtcNow < deadline)
         {
-            var element = window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
+            var element = window.FindFirstDescendant(condition);
             if (element != null)
             {
                 return element;
@@ -157,7 +160,7 @@ public sealed class E2ETestFixture : IDisposable
             Thread.Sleep(200);
         }
 
-        throw new TimeoutException($"Element '{automationId}' was not found.");
+        throw new TimeoutException("Required UI element was not found.");
     }
 
     public static void SeedSignature(string dataDirectory, string name = "Test Signature")
