@@ -24,7 +24,7 @@ Example: `feature/windows-auto-update`, `fix/macos-clipboard-png`
 2. Make your changes on the appropriate platform(s).
 3. **Run tests locally** before opening a PR:
    - macOS: `cd macos && xcodebuild test …` or `swift test` (see `DEVELOPMENT.md`)
-   - Windows: `cd windows && dotnet test Ponten.sln -c Release`
+   - Windows: `cd windows && dotnet test Ponten.sln -c Release` (unit + E2E; E2E requires a built `PontenWPF.exe` and runs on Windows only)
 4. If you added macOS `.swift` files, run `ruby add_files.rb` from the repo root.
 5. Update `README.md` / `CHANGELOG.md` if user-facing behavior changed.
 6. Open a PR against `main` with a clear description and test notes.
@@ -33,6 +33,7 @@ Example: `feature/windows-auto-update`, `fix/macos-clipboard-png`
 
 - [ ] Builds on the platform(s) you touched
 - [ ] Tests pass locally
+- [ ] Windows UI changes: E2E tests pass on Windows
 - [ ] No unrelated drive-by changes
 - [ ] Version numbers bumped only when releasing (see `agent.md` checklist)
 - [ ] New Swift sources synced via `add_files.rb` if applicable
@@ -42,7 +43,7 @@ Example: `feature/windows-auto-update`, `fix/macos-clipboard-png`
 GitHub Actions (`.github/workflows/ci.yml`) runs on every PR to `main`:
 
 - **macOS**: compile + unit tests (`xcodebuild test`)
-- **Windows**: `dotnet test Ponten.sln -c Release` + publish build
+- **Windows** (`windows-latest`): unit + E2E tests via `dotnet test Ponten.sln -c Release`, then publish build
 
 PRs must pass CI before merge. Release artifacts (DMG, installer) are produced on `v*` tags only.
 

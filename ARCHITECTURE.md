@@ -25,8 +25,9 @@ Ponten/
 │   │   └── Utilities/     GlobalShortcutManager, EventMonitor
 │   └── PontenTests/       XCTest (DI via init(store:))
 └── windows/
-    ├── PontenWPF/         App, MenuBarView, SignatureStorage, ImageProcessor, …
-    └── PontenWPF.Tests/   xUnit (custom storage directory)
+    ├── PontenWPF/             App, MenuBarView, SignatureStorage, ImageProcessor, …
+    ├── PontenWPF.Tests/       xUnit (custom storage directory)
+    └── PontenWPF.E2E.Tests/   FlaUI UI automation (isolated data-dir runs via E2ETestFixture)
 ```
 
 ---
@@ -166,7 +167,7 @@ Thin wrapper around `NSEvent.addGlobalMonitorForEvents`. Started when popover op
 
 **`App.xaml.cs`** — WPF application entry:
 
-- Single-instance `Mutex` (`PontenWPF.SingleInstance`)
+- Single-instance `Mutex` (`PontenWPF.SingleInstance`; in E2E mode, per-run mutex hashed from data dir — see [Windows E2E / Test Harness](#windows-e2e--test-harness))
 - `H.NotifyIcon` `TaskbarIcon` with extracted `.exe` icon (fallback: `Assets/Ponten.ico`)
 - Context menu: Open, Add Signature, Draw Signature, Quit
 - Left-click toggles `MenuBarView` visibility
@@ -189,7 +190,7 @@ Storage root: `%LocalAppData%\Ponten\`
 
 - Loads / saves `index.json` (items, activeID, settings)
 - Cleans index entries whose PNG files are missing on load
-- `ApplyLaunchAtLogin` — writes/removes `HKCU\...\Run\PontenSignatures` registry value
+- `ApplyLaunchAtLogin` — writes/removes `HKCU\...\Run\PontenSignatures` registry value (legacy key name; the app displays **Ponten** in the UI)
 - Testable via `SignatureStorage(string? customStorageDirectory)`
 
 ### `ImageProcessor.cs` — Image Operations
@@ -213,13 +214,61 @@ No vectorization on Windows.
 Win32 `RegisterHotKey` via P/Invoke. Fixed registration in `MenuBarView_SourceInitialized`:
 
 - **Ctrl + Alt + S** (`MOD_CONTROL | MOD_ALT`, `VK_S`)
-- Hotkey handler: copy active signature to clipboard + `AutoPaste()` (always pastes on hotkey; does not check `Settings.AutoPaste`)
+- Hotkey handler: `HandleHotKeyAsync()` copies the active signature and respects `Settings.AutoPaste` (same as the Sign button)
+- If no signature is loaded, opens the popup instead of copying
 
-`SetShortcut_Click` shows a stub dialog: *"Shortcut customization is coming soon."*
+Shortcut customization is not implemented on Windows yet — the footer shows a static label (`Shortcut: Ctrl+Alt+S`) rather than a picker or dialog.
 
 ### `Updater.cs`
 
-`HttpClient`-based download helper (`DownloadUpdateAndExecute`). Exists as infrastructure but is **not wired** to the UI — `CheckUpdates_Click` currently shows a static "up to date" message.
+`HttpClient`-based GitHub Releases check and download helper (`CheckForUpdateAsync`, `DownloadUpdateAndExecute`). Wired to the UI via `CheckUpdates_Click` — prompts to download and install when a newer release is available.
+
+---
+
+## Windows E2E / Test Harness
+
+Windows UI automation tests live in `PontenWPF.E2E.Tests/` and drive the real `PontenWPF.exe` via [FlaUI](https://github.com/FlaUI/FlaUI) (UIA3).
+
+### `E2EMode.cs` — activation & data isolation
+
+`E2EMode.Initialize(args)` runs at app startup and sets two flags:
+
+| Switch | Source |
+|---|---|
+| **E2E enabled** | CLI `--e2e` **or** env `PONTEN_E2E=1` |
+| **Data directory** | Env `PONTEN_DATA_DIR` **or** CLI `--data-dir=<path>` (also accepts `--data-dir <path>`) |
+
+When enabled, `SignatureStorage` is constructed with `E2EMode.DataDirectory` so each test run uses an isolated temp folder instead of `%LocalAppData%\Ponten\`.
+
+### App startup branches in E2E
+
+In `App.xaml.cs` `OnStartup`:
+
+- **Mutex** — `PontenWPF.E2E.{dataDirHash}` (hash of data dir) instead of `PontenWPF.SingleInstance`, allowing parallel E2E runs with different data dirs
+- **Tray skipped** — `TaskbarIcon` / `H.NotifyIcon` setup is bypassed
+- **Visible window** — `MenuBarView` is created, shown, and activated directly (no tray click required)
+- **Duplicate instance** — exits silently (no MessageBox) when another instance holds the same E2E mutex
+
+`MenuBarView` also adapts in E2E: auto-shows on load, does not hide on `Deactivated`, and keeps status text visible.
+
+### Clipboard substitute — `e2e-last-copy.txt`
+
+E2E mode does not touch the system clipboard (avoids flaky automation and permission issues). On copy, `CopyActiveSignatureToClipboard` writes `{dataDir}/e2e-last-copy.txt` with a UTC timestamp. `E2ETestFixture.WaitForCopyMarker()` polls for this file to assert copy success.
+
+Auto-paste is also skipped in E2E (`autoPaste && !E2EMode.IsEnabled`).
+
+### `E2ETestFixture` (FlaUI)
+
+`PontenWPF.E2E.Tests/E2ETestFixture.cs` is the shared fixture:
+
+- Resolves `PontenWPF.exe` from build output (`CONFIGURATION` env, default `Release`)
+- Launches with `--e2e --data-dir="<temp>"` plus `PONTEN_E2E=1` and `PONTEN_DATA_DIR`
+- Kills stale `PontenWPF` processes between runs
+- Waits for the `Ponten Menu` window via UIA3
+- Provides helpers: `RequireElement`, `WaitForCopyMarker`, `SeedSignature`, `AssertAutoPastePersisted`
+- Cleans up temp data dir on dispose (unless a pre-seeded dir was passed in)
+
+`MenuBarE2ETests` uses `[Collection("E2E")]` with `DisableParallelization = true` to avoid mutex/UI conflicts.
 
 ---
 
@@ -260,8 +309,9 @@ Windows: %LocalAppData%\Ponten\
   ],
   "activeID": "UUID",
   "settings": {
-    "launchAtLogin": false,
-    "autoPaste": true
+    "LaunchAtLogin": false,
+    "AutoPaste": true,
+    "RemoveBackground": true
   }
 }
 ```
@@ -276,9 +326,10 @@ Windows: %LocalAppData%\Ponten\
 
 | Setting | macOS | Windows |
 |---|---|---|
-| Launch at login | `SMAppService` + `@Published launchAtLogin` | `index.json` → `settings.launchAtLogin` + Registry Run key |
-| Auto-paste | UserDefaults `AutoPasteEnabled` | `index.json` → `settings.autoPaste` |
-| Global shortcut | UserDefaults `GlobalShortcut` | Hard-coded Ctrl+Alt+S (stub UI) |
+| Launch at login | `SMAppService` + `@Published launchAtLogin` | `index.json` → `settings.LaunchAtLogin` + Registry Run key (`PontenSignatures`) |
+| Auto-paste | UserDefaults `AutoPasteEnabled` | `index.json` → `settings.AutoPaste` |
+| Remove background default | N/A (per-save in editor) | `index.json` → `settings.RemoveBackground` |
+| Global shortcut | UserDefaults `GlobalShortcut` | Hard-coded Ctrl+Alt+S (static label in footer) |
 | Show white canvas | UserDefaults `ShowWhiteCanvas` | N/A |
 
 ---
@@ -343,7 +394,8 @@ Hotkey pressed
         │          → if no signature: open popover
         │
         └─ Windows: WM_HOTKEY → GlobalShortcutManager.HotKeyPressed
-                   → Clipboard.SetImage(active) + AutoPaste() (always)
+                   → HandleHotKeyAsync() → copy + AutoPaste if Settings.AutoPaste
+                   → if no signature: show popup
 ```
 
 ### 4. Draw Signature Flow
@@ -366,17 +418,17 @@ Save → PNG encode → new UUID entry in index + disk
 |---|---|---|
 | Tray-only UI | ✅ `NSPopover` | ✅ Popup window |
 | Multiple signatures | ✅ | ✅ |
-| Rename signatures | ✅ context menu | ❌ |
+| Rename signatures | ✅ context menu | ✅ `RenameSignature_Click` |
 | Draw signature | ✅ `DrawingView` | ✅ `DrawSignatureWindow` |
 | Image editor | ✅ `ImageEditorView` | ✅ `ImageEditorWindow` |
 | Background removal | ✅ CI filters | ✅ pixel strip |
 | Vectorize on save | ✅ Vision contours | ❌ |
-| Drag & drop import | ✅ | ❌ (file picker only) |
+| Drag & drop import | ✅ | ✅ `Grid_DragOver` / `Grid_Drop` |
 | Global hotkey | ✅ 3 presets (⌥⌘S default) | ✅ fixed Ctrl+Alt+S |
-| Shortcut customization | ✅ Picker in footer | ⚠️ Stub ("coming soon") |
-| Auto-paste toggle | ✅ respects setting | ✅ UI toggle; hotkey always pastes |
-| Launch at login | ✅ `SMAppService` | ✅ Registry Run key |
-| Auto-updater | ✅ GitHub API + DMG install | ⚠️ `Updater.cs` exists; UI not wired |
+| Shortcut customization | ✅ Picker in footer | ❌ static label (`Shortcut: Ctrl+Alt+S`) |
+| Auto-paste toggle | ✅ respects setting | ✅ respects `Settings.AutoPaste` via `HandleHotKeyAsync` |
+| Launch at login | ✅ `SMAppService` | ✅ Registry Run key (`PontenSignatures`) |
+| Auto-updater | ✅ GitHub API + DMG install | ✅ `CheckUpdates_Click` + `Updater.cs` |
 | Legacy `signature.png` migration | ✅ | ❌ |
 | Settings location | UserDefaults + index.json | index.json only |
 | DI for tests | ✅ `init(store:)` | ✅ custom storage directory ctor |
@@ -388,7 +440,14 @@ Save → PNG encode → new UUID entry in index + disk
 
 **macOS** — `SignatureManager` accepts `SignatureStore(storageDirectory:)` in its initializer. Production uses `SignatureManager.shared` (default store path). `PontenTests` create a temp directory and inject `SignatureManager(store: testStore)`.
 
-**Windows** — `SignatureStorage(customStorageDirectory:)` constructor enables isolated xUnit tests without touching `%LocalAppData%`.
+**Windows** — two test layers:
+
+| Project | Scope | Isolation |
+|---|---|---|
+| `PontenWPF.Tests` | xUnit unit tests | `SignatureStorage(customStorageDirectory:)` — temp dir, no `%LocalAppData%` |
+| `PontenWPF.E2E.Tests` | FlaUI end-to-end UI tests | `E2ETestFixture` launches `PontenWPF.exe` with `--e2e --data-dir=<temp>` and `PONTEN_E2E=1` |
+
+E2E tests exercise real window interactions (copy marker, settings persistence, restart) against an isolated data directory; unit tests cover storage and image logic without launching the app.
 
 ---
 
@@ -422,7 +481,7 @@ Current release: **v1.2.12**
 ### Network
 
 - **macOS updater** uses `URLSession` to call `api.github.com/repos/mustafabercerita/ponten/releases/latest`, download release assets, and install via a shell script. This is real outbound network usage — not offline-only.
-- **Windows** `Updater.cs` can download via `HttpClient` but the menu action is not connected yet.
+- **Windows updater** uses `Updater.cs` (`HttpClient`) via `CheckUpdates_Click` to query GitHub Releases and download/install updates.
 - No analytics, telemetry, or third-party SDKs on either platform.
 
 ### macOS Entitlements (`Ponten.entitlements`)

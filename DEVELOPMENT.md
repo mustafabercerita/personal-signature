@@ -8,7 +8,7 @@ Bump **all** together, then `git tag vX.Y.Z`. Current: **1.2.12**.
 |----------|----------------|
 | `macos/Ponten/Resources/Info.plist` | `CFBundleShortVersionString` |
 | `macos/Ponten.xcodeproj/project.pbxproj` | `MARKETING_VERSION` |
-| `windows/PontenWPF/PontenWPF.csproj` | `<Version>`, `<AssemblyVersion>`, `<FileVersion>` |
+| `windows/PontenWPF/PontenWPF.csproj` | `<Version>`, `<AssemblyVersion>`, `<FileVersion>`, `<InformationalVersion>` |
 | `windows/installer.iss` | `#define MyAppVersion` |
 | `macos/install.sh` / `build-dmg.sh` | `VERSION=` |
 
@@ -40,13 +40,27 @@ swift test                                         # SPM alternative
 cd windows
 dotnet build Ponten.sln -c Debug
 dotnet run --project PontenWPF/PontenWPF.csproj
-dotnet test Ponten.sln -c Release                  # CI command
+dotnet test Ponten.sln -c Release                  # 12 unit + 5 E2E (CI command)
 dotnet publish PontenWPF/PontenWPF.csproj -c Release -r win-x64 \
   --self-contained true -p:PublishSingleFile=true
 ```
 
+**SDK pin:** `windows/global.json` pins SDK **8.0.408** with `rollForward: latestPatch`. CI uses `actions/setup-dotnet` with `global-json-file: windows/global.json`.
+
 Publish produces `dist/Ponten-Windows.exe` (build intermediate for the installer).  
 Release artifact: Inno Setup `windows/installer.iss` → `dist/Ponten-Setup-X.Y.Z.exe` (installer only — no portable release).
+
+### Windows E2E tests (FlaUI + xUnit)
+
+`PontenWPF.E2E.Tests/` contains **5** end-to-end tests that drive the real WPF UI via [FlaUI](https://github.com/FlaUI/FlaUI). They run **only on Windows** — not on macOS or Linux.
+
+```bash
+cd windows
+dotnet build Ponten.sln -c Release
+dotnet test Ponten.sln -c Release --filter "Category=E2E"
+```
+
+E2E mode: `--e2e` or `PONTEN_E2E=1`. Isolated data dir: `--data-dir=<path>` or `PONTEN_DATA_DIR`.
 
 ---
 
@@ -61,4 +75,4 @@ Release artifact: Inno Setup `windows/installer.iss` → `dist/Ponten-Setup-X.Y.
 
 ## CI
 
-`.github/workflows/ci.yml` — PRs: macOS build+test, Windows test+publish. Tags `v*`: DMG + Inno installer + GitHub Release.
+`.github/workflows/ci.yml` — PRs: macOS build+unit test, Windows unit+E2E test+publish. Tags `v*`: DMG + Inno installer + GitHub Release.

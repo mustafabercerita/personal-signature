@@ -49,7 +49,7 @@ Install app → 🖊 icon appears in menu bar / system tray → click icon
 | **System-Tray Architecture** | Lives quietly in the macOS menu bar or Windows system tray — no taskbar clutter. |
 | **Global hotkey** | Copy your signature without even opening the popover (⌥⌘S on Mac, Ctrl+Alt+S on Win). |
 | **Auto-Paste Functionality** | Optionally pastes the signature into your active application after copying. |
-| **Native Auto-Updater** | Built-in GitHub Releases auto-updater to keep you on the latest version seamlessly. |
+| **Native Auto-Updater** | Built-in GitHub Releases checker — macOS checks on launch; Windows via the **Check for Updates** button (`Updater.cs`). |
 | **Drag & Drop** | Drag an image file directly onto the popover to set your signature. |
 | **Live Preview & Pen Tools** | Adjust stroke thickness visually using native morphology techniques. |
 | **Background Removal** | Automatically drops white backgrounds from JPEG/PNG images so your signature is clean and transparent. |
@@ -142,7 +142,9 @@ That's it. The script will:
 
 1. Clone the repo and navigate to `windows/`.
 2. Run `dotnet build Ponten.sln -c Release`.
-3. Launch `PontenWPF.exe` from `windows/PontenWPF/bin/Release/net8.0-windows/win-x64/`.
+3. Launch `PontenWPF.exe` from `windows/PontenWPF/bin/Release/net8.0-windows/`.
+
+> After `dotnet publish` with `-r win-x64`, the executable is under `.../win-x64/publish/`.
 
 ---
 
@@ -179,6 +181,8 @@ Ponten/
 │   └── workflows/
 │       └── ci.yml                   # GitHub Actions CI for multi-platform
 │
+├── Logo/                            # Brand assets (PNG, Affinity source)
+│
 ├── macos/                           # macOS App (Swift / SwiftUI / AppKit)
 │   ├── Ponten.xcodeproj/
 │   ├── Ponten/
@@ -188,6 +192,7 @@ Ponten/
 │   │   │   ├── SignatureStore.swift
 │   │   │   └── ImageProcessor.swift
 │   │   ├── Views/                   # SwiftUI UI components
+│   │   ├── Utilities/               # GlobalShortcutManager, EventMonitor
 │   │   └── Resources/               # Assets, Plist
 │   ├── PontenTests/                 # XCTest suite (11 tests)
 │   ├── Package.swift                # Swift Package Manager manifest
@@ -197,6 +202,7 @@ Ponten/
 │
 ├── windows/                         # Windows App (C# / WPF / .NET 8)
 │   ├── Ponten.sln
+│   ├── global.json                  # .NET SDK pin (8.0.408)
 │   ├── installer.iss                # Inno Setup installer script
 │   ├── PontenWPF/
 │   │   ├── App.xaml                 # Entry point
@@ -206,12 +212,15 @@ Ponten/
 │   │   ├── GlobalShortcutManager.cs # Win32 hotkey registration
 │   │   ├── Updater.cs               # GitHub release checker
 │   │   └── ImageEditorWindow.xaml   # Image editing & pen tools
-│   └── PontenWPF.Tests/             # xUnit suite (7 tests)
+│   ├── PontenWPF.Tests/             # xUnit unit tests (12 tests)
+│   └── PontenWPF.E2E.Tests/         # FlaUI E2E tests (5 tests, Windows-only)
 │
 ├── add_files.rb                     # Xcode project file sync helper
+├── agent.md                         # AI agent context for contributors
 ├── README.md
 ├── ARCHITECTURE.md
 ├── CHANGELOG.md
+├── CONTRIBUTING.md
 ├── DEVELOPMENT.md
 └── LICENSE (MIT)
 ```
@@ -220,7 +229,7 @@ Ponten/
 
 ## Running Tests
 
-**macOS (Xcode):**
+**macOS (Xcode) — 11 unit tests:**
 ```bash
 cd macos
 xcodebuild -project Ponten.xcodeproj -scheme Ponten \
@@ -233,11 +242,20 @@ cd macos
 swift test
 ```
 
-**Windows:**
+**Windows — 12 unit tests + 5 E2E (17 total via `dotnet test`):**
 ```bash
 cd windows
 dotnet test Ponten.sln -c Release
 ```
+
+**Windows E2E only (FlaUI + xUnit, Windows-only):**
+```bash
+cd windows
+dotnet build Ponten.sln -c Release
+dotnet test Ponten.sln -c Release --filter "Category=E2E"
+```
+
+E2E mode is activated with `--e2e` or `PONTEN_E2E=1`. Use `--data-dir=<path>` or `PONTEN_DATA_DIR` to point the app at an isolated test data directory.
 
 ---
 
@@ -253,8 +271,9 @@ Release history: [CHANGELOG.md](CHANGELOG.md) · Developer setup: [DEVELOPMENT.m
 ### CI / Automated builds
 
 CI runs on pushes to `main` and `develop`, and on pull requests targeting `main`.  
+On Windows, CI runs unit tests and FlaUI E2E tests (`Category=E2E`).  
 Pushing a tag matching `v*` triggers a GitHub Actions release that:
-- Builds macOS DMG and runs tests
+- Builds macOS DMG and runs unit tests
 - Builds Windows installer (`Ponten-Setup-X.Y.Z.exe`) via Inno Setup
 - Publishes assets automatically to GitHub Releases
 

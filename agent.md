@@ -11,7 +11,7 @@ Ponten is **100% native** on both platforms — no Electron, no web views.
 | **macOS** | AppKit + SwiftUI | `MenuBarView` in an `NSPopover` (`AppDelegate`) |
 | **Windows** | WPF (.NET 8) | `MenuBarView.xaml` (assigned to `Application.MainWindow`) |
 
-**Menu-bar only** — no Dock icon (macOS `LSUIElement`), no traditional main window. On Windows, `MainWindow.xaml` exists as a scaffold but is **not** the primary UI; `MenuBarView.xaml` is.
+**Menu-bar only** — no Dock icon (macOS `LSUIElement`), no traditional main window. On Windows, `App.xaml.cs` assigns `Application.MainWindow` to a `MenuBarView` instance — there is no `MainWindow.xaml`.
 
 **Data flow**: `NotificationCenter` (macOS) and direct method calls (Windows) for cross-component events (updates, popover close, etc.).
 
@@ -111,15 +111,24 @@ swift test
 
 ```bash
 cd windows
-dotnet test Ponten.sln -c Release
+dotnet test Ponten.sln -c Release   # unit (12) + E2E (5)
 ```
+
+**E2E tests** (`PontenWPF.E2E.Tests`): 5 FlaUI + xUnit tests that launch `PontenWPF.exe` and drive the tray popover UI. Windows-only; requires a prior build of `PontenWPF` (the test fixture locates `PontenWPF.exe` under `bin/`).
+
+**E2E mode flags** (set by the test fixture; useful for manual debugging):
+
+| Flag / env | Purpose |
+|------------|---------|
+| `--e2e` or `PONTEN_E2E=1` | Enable E2E mode (show window immediately, skip tray-only behaviors) |
+| `PONTEN_DATA_DIR` or `--data-dir=<path>` | Isolated storage directory for test data |
 
 ### CI (`.github/workflows/ci.yml`)
 
 Runs on every push/PR to `main`/`develop` and on `v*` tags:
 
 - **macOS**: Debug build → unit tests → Release archive (on `main`)
-- **Windows**: `dotnet test` → publish single-file exe → Inno Setup (on tags)
+- **Windows** (`windows-latest`): `dotnet test Ponten.sln -c Release` (unit + E2E) → publish single-file exe → Inno Setup (on tags)
 - **Release job** (on tags): `build-dmg.sh` + upload DMG + Windows artifacts to GitHub Releases
 
 ---
@@ -145,10 +154,12 @@ Both platforms store signatures in a platform-specific app-data folder with an `
 
 | Field | macOS (`SignatureStore`) | Windows (`SignatureStorage`) |
 |-------|--------------------------|------------------------------|
-| Items key | `items` (camelCase) | `Items` (PascalCase; deserializer is case-insensitive) |
+| Items key | `items` (camelCase) | `Items` (PascalCase on write; deserializer is case-insensitive) |
 | Active ID | `activeID` | `ActiveID` |
-| Settings | ❌ not in index | ✅ `Settings` (`LaunchAtLogin`, `AutoPaste`) |
+| Settings | ❌ not in index | ✅ `Settings` (`LaunchAtLogin`, `AutoPaste`, `RemoveBackground`) |
 | Storage path | `~/Library/Application Support/Ponten/` | `%LOCALAPPDATA%\Ponten\` |
+
+Windows writes `index.json` with PascalCase property names (default `System.Text.Json` serialization).
 
 Do not assume cross-platform index file compatibility.
 
@@ -160,4 +171,4 @@ Do not assume cross-platform index file compatibility.
 - Double-check before concluding.
 - If something breaks, fix it immediately.
 
-See also: `DEVELOPMENT.md` (build commands), `CONTRIBUTING.md` (PR flow), `ARCHITECTURE.md` (deeper macOS diagram).
+See also: `DEVELOPMENT.md` (build commands), `CONTRIBUTING.md` (PR flow), `ARCHITECTURE.md` (deeper architecture for both platforms).

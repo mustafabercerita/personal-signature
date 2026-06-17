@@ -8,12 +8,17 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Windows E2E test suite** — 5 UI tests (FlaUI + xUnit) in `PontenWPF.E2E.Tests`
+- **E2E mode** — `--e2e` flag, `PONTEN_E2E=1`, and `PONTEN_DATA_DIR` for isolated test data
+- **CI E2E on Windows** — `dotnet test Ponten.sln -c Release` runs unit + E2E on `windows-latest`
+
 ### Changed
 - **SignatureStore extraction** — macOS persistence moved out of `SignatureManager` into dedicated `SignatureStore`
 - **ImageProcessor extensions** — image-processing helpers consolidated in `ImageProcessor.swift`
 - **Windows rename** — `SignatureManager.cs` renamed to `ImageProcessor.cs` for clarity
-- **Test infrastructure** — dependency injection for storage layer; flaky tests stabilized (11 macOS + 7 Windows)
-- **Documentation overhaul** — README, ARCHITECTURE, CHANGELOG, and DEVELOPMENT guides updated
+- **Test infrastructure** — dependency injection for storage layer; flaky tests stabilized (11 macOS + 12 Windows unit + 5 E2E)
+- **Documentation refresh** — README, ARCHITECTURE, CHANGELOG, DEVELOPMENT, and agent guides updated (now includes E2E testing)
 
 ---
 
@@ -23,7 +28,7 @@ versioning follows [Semantic Versioning](https://semver.org/).
 - **Windows installer** — Inno Setup script (`installer.iss`) with Start Menu shortcut and uninstaller
 - **Windows feature parity** — draw signature canvas and global shortcut (Ctrl+Alt+S)
 - **macOS right-click Quit** — Quit option on status-item context menu
-- **Unit tests** — comprehensive macOS (11) and Windows (7) test suites
+- **Unit tests** — comprehensive macOS (11) and Windows (7 at release; suite later expanded to 12) test suites
 
 ### Fixed
 - **Windows tray icon** — reliable registration via H.NotifyIcon.Wpf `ForceCreate()` and icon fallback
