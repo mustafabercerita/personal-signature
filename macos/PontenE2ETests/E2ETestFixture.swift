@@ -528,11 +528,12 @@ final class E2ETestFixture {
         }
 
         var thrown: Error?
+        let work = block
         let group = DispatchGroup()
         group.enter()
         DispatchQueue.main.async {
             do {
-                try block()
+                try work()
             } catch {
                 thrown = error
             }
