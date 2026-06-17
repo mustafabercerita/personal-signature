@@ -33,6 +33,7 @@
                     <TextBlock x:Name="EmptyStateText" Text="No signatures yet." Foreground="Gray" FontStyle="Italic" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <ListBox x:Name="SignaturesListBox" Background="Transparent" BorderThickness="0" 
                              SelectionChanged="SignaturesListBox_SelectionChanged"
+                             ContextMenuOpening="SignaturesListBox_ContextMenuOpening"
                              ScrollViewer.VerticalScrollBarVisibility="Disabled">
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -64,14 +65,6 @@
                                                 <ContentPresenter/>
                                             </Border>
                                         </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                                <Setter Property="ContextMenu">
-                                    <Setter.Value>
-                                        <ContextMenu Background="#2D2D2D" BorderBrush="#444444">
-                                            <MenuItem Header="Edit" Foreground="White" Click="EditSignature_Click"/>
-                                            <MenuItem Header="Rename" Foreground="White" Click="RenameSignature_Click"/>
-                                        </ContextMenu>
                                     </Setter.Value>
                                 </Setter>
                                 <Style.Triggers>

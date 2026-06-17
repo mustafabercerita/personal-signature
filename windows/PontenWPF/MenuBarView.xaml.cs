@@ -240,6 +240,33 @@ namespace PontenWPF
             }
         }
 
+        private void SignaturesListBox_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            if (SignaturesListBox.SelectedItem is not SignatureDisplayItem)
+            {
+                e.Handled = true;
+                return;
+            }
+
+            var menu = new ContextMenu
+            {
+                Background = new System.Windows.Media.SolidColorBrush(
+                    System.Windows.Media.Color.FromRgb(0x2D, 0x2D, 0x2D)),
+                BorderBrush = new System.Windows.Media.SolidColorBrush(
+                    System.Windows.Media.Color.FromRgb(0x44, 0x44, 0x44))
+            };
+
+            var editItem = new MenuItem { Header = "Edit", Foreground = System.Windows.Media.Brushes.White };
+            editItem.Click += EditSignature_Click;
+            menu.Items.Add(editItem);
+
+            var renameItem = new MenuItem { Header = "Rename", Foreground = System.Windows.Media.Brushes.White };
+            renameItem.Click += RenameSignature_Click;
+            menu.Items.Add(renameItem);
+
+            SignaturesListBox.ContextMenu = menu;
+        }
+
         private void SignaturesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (SignaturesListBox.SelectedItem is not SignatureDisplayItem selected)
@@ -314,7 +341,7 @@ namespace PontenWPF
             LoadSignatures();
         }
 
-        private static SignatureDisplayItem? GetSignatureDisplayItemFromMenuItem(MenuItem menuItem)
+        private SignatureDisplayItem? GetSignatureDisplayItemFromMenuItem(MenuItem menuItem)
         {
             if (menuItem.DataContext is SignatureDisplayItem displayItem)
             {
@@ -324,6 +351,11 @@ namespace PontenWPF
             if (menuItem.Parent is ContextMenu { PlacementTarget: ListBoxItem listBoxItem })
             {
                 return listBoxItem.DataContext as SignatureDisplayItem;
+            }
+
+            if (SignaturesListBox.SelectedItem is SignatureDisplayItem selected)
+            {
+                return selected;
             }
 
             return null;
