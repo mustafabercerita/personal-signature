@@ -196,6 +196,7 @@ namespace PontenWPF
         {
             StatusText.Text = message;
             StatusText.Visibility = Visibility.Visible;
+            System.Windows.Automation.AutomationProperties.SetName(StatusText, message);
 
             _statusTimer?.Stop();
             _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };

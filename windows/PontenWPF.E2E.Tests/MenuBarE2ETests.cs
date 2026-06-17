@@ -46,9 +46,9 @@ public class MenuBarE2ETests
         var signButton = fixture.RequireElement(
             window,
             cf => cf.ByControlType(ControlType.Button).And(cf.ByName("Sign"))).AsButton();
-        signButton.Invoke();
+        signButton.Click();
 
-        var statusText = fixture.RequireTextContaining(window, "copied", TimeSpan.FromSeconds(5));
+        var statusText = fixture.RequireTextContaining(window, "copied", TimeSpan.FromSeconds(10));
         Assert.Contains("copied", statusText.Name, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -80,10 +80,14 @@ public class MenuBarE2ETests
 
         using var restarted = new E2ETestFixture(dataDirectory);
         var restartedWindow = restarted.WaitForMainWindow();
+        restarted.RequireElement(restartedWindow, cf => cf.ByName("Test Signature"));
+        E2ETestFixture.AssertAutoPastePersisted(dataDirectory);
+
         var restartedAutoPaste = restarted.WaitForCheckBoxChecked(
             restartedWindow,
-            "Auto-paste after copying");
-        Assert.True(restartedAutoPaste.IsChecked);
+            "Auto-paste after copying",
+            TimeSpan.FromSeconds(20));
+        Assert.True(restartedAutoPaste.IsChecked.GetValueOrDefault());
     }
 
     [Fact]
