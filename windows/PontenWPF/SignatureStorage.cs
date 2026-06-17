@@ -31,6 +31,7 @@ namespace PontenWPF
     {
         private readonly string _storageDirectory;
         private readonly string _indexPath;
+        private readonly bool _skipRegistrySync;
 
         public List<SignatureItem> Signatures { get; private set; } = new();
         public Guid? ActiveSignatureID { get; set; }
@@ -41,10 +42,12 @@ namespace PontenWPF
             if (!string.IsNullOrEmpty(customStorageDirectory))
             {
                 _storageDirectory = customStorageDirectory;
+                _skipRegistrySync = true;
             }
             else
             {
                 _storageDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Ponten");
+                _skipRegistrySync = false;
             }
             _indexPath = Path.Combine(_storageDirectory, "index.json");
             Directory.CreateDirectory(_storageDirectory);
@@ -101,6 +104,11 @@ namespace PontenWPF
 
         private void SyncLaunchAtLoginFromRegistry(ref bool changed)
         {
+            if (_skipRegistrySync)
+            {
+                return;
+            }
+
             bool registryEnabled = IsLaunchAtLoginEnabledInRegistry();
             if (Settings.LaunchAtLogin != registryEnabled)
             {
@@ -185,6 +193,12 @@ namespace PontenWPF
         {
             Settings.LaunchAtLogin = launch;
             SaveIndex();
+
+            if (_skipRegistrySync)
+            {
+                return;
+            }
+
             try
             {
                 using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);

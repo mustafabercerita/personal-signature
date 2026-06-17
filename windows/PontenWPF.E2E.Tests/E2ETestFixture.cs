@@ -47,7 +47,7 @@ public sealed class E2ETestFixture : IDisposable
     private static Application LaunchApp(string dataDirectory)
     {
         var exePath = ResolveAppExecutable();
-        return Application.Launch(exePath, "--e2e", $"--data-dir={dataDirectory}");
+        return Application.Launch(exePath, $"--e2e --data-dir={dataDirectory}");
     }
 
     public Window WaitForMainWindow(TimeSpan? timeout = null)
