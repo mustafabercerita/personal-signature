@@ -177,7 +177,6 @@ final class E2ETestFixture {
     }
 
     private static func ensureTestApplication() {
-        NSApplicationLoad()
         let app = NSApplication.shared
         app.setActivationPolicy(.regular)
         app.activate(ignoringOtherApps: true)
