@@ -9,11 +9,9 @@ final class E2ETestFixture {
 
     private static let serializationLock = NSLock()
 
+    /// In-process hosting is the default (same-process AX). Opt out with `PONTEN_E2E_OUT_OF_PROCESS=1`.
     static var useInProcess: Bool {
-        let env = ProcessInfo.processInfo.environment
-        return env["CI"] == "true"
-            || env["GITHUB_ACTIONS"] == "true"
-            || env["PONTEN_E2E_IN_PROCESS"] == "1"
+        ProcessInfo.processInfo.environment["PONTEN_E2E_OUT_OF_PROCESS"] != "1"
     }
 
     let dataDirectory: String
@@ -179,6 +177,7 @@ final class E2ETestFixture {
     }
 
     private static func ensureTestApplication() {
+        NSApplicationLoad()
         let app = NSApplication.shared
         app.setActivationPolicy(.regular)
         app.activate(ignoringOtherApps: true)
@@ -260,6 +259,10 @@ final class E2ETestFixture {
                 return nil
             }
 
+            if usesInProcess, hasVisibleMenuWindow() {
+                return AXUIElementCreateApplication(appPID)
+            }
+
             let appElement = AXUIElementCreateApplication(appPID)
             if let window = findPontenWindow(in: appElement) {
                 return window
@@ -269,6 +272,12 @@ final class E2ETestFixture {
         }
 
         return nil
+    }
+
+    private func hasVisibleMenuWindow() -> Bool {
+        NSApp.windows.contains {
+            $0.title == "Ponten Menu" || $0.identifier?.rawValue == "PontenMenu"
+        }
     }
 
     private func findPontenWindow(in appElement: AXUIElement) -> AXUIElement? {

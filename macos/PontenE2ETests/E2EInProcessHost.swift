@@ -33,6 +33,9 @@ final class E2EInProcessHost {
         window.contentViewController = hostingController
         window.center()
         window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+        window.displayIfNeeded()
+        window.contentView?.layoutSubtreeIfNeeded()
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         self.window = window
