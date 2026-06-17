@@ -21,6 +21,10 @@ public partial class App : Application
         Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         
         Log("App startup initiated");
+        if (E2EMode.IsEnabled)
+        {
+            Log($"E2E mode enabled. DataDirectory={(E2EMode.DataDirectory ?? "(default)")}");
+        }
         string? exePath = Environment.ProcessPath ?? System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
         Log($"Version: {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}");
         
@@ -213,10 +217,11 @@ public partial class App : Application
         catch { /* Ignore logging failures */ }
     }
 
-    public static void LogException(string context, Exception ex)
-    {
-        Log($"{context}: {ex.GetType().Name} - {ex.Message}");
-    }
+        public static void LogException(string context, Exception ex)
+        {
+            var inner = ex.InnerException != null ? $" Inner={ex.InnerException.GetType().Name}: {ex.InnerException.Message}" : "";
+            Log($"{context}: {ex.GetType().Name} - {ex.Message}{inner}");
+        }
 
     private static bool IsNonFatalException(Exception ex)
     {

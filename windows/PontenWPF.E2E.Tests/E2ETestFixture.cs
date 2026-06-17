@@ -74,10 +74,12 @@ public sealed class E2ETestFixture : IDisposable
         var startInfo = new ProcessStartInfo
         {
             FileName = exePath,
-            Arguments = $"--e2e --data-dir=\"{dataDirectory}\"",
+            Arguments = "--e2e",
             WorkingDirectory = Path.GetDirectoryName(exePath) ?? AppContext.BaseDirectory,
-            UseShellExecute = true
+            UseShellExecute = false
         };
+        startInfo.Environment["PONTEN_E2E"] = "1";
+        startInfo.Environment["PONTEN_DATA_DIR"] = dataDirectory;
 
         var process = Process.Start(startInfo)
             ?? throw new InvalidOperationException($"Failed to start Ponten at {exePath}");
