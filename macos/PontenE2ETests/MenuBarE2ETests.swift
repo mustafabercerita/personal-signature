@@ -1,3 +1,4 @@
+import AppKit
 import ApplicationServices
 import XCTest
 
@@ -99,7 +100,7 @@ final class MenuBarE2ETests: XCTestCase {
                 title: "Quit"
             )
             try fixture.press(quitButton)
-            try waitForProcessExit(fixture.process, timeout: 10)
+            try waitForProcessExit(pid: fixture.appPID, timeout: 10)
             E2ETestFixture.assertAutoPastePersisted(dataDirectory: dataDirectory)
         }
 
@@ -139,7 +140,7 @@ final class MenuBarE2ETests: XCTestCase {
         )
         try fixture.press(quitButton)
 
-        XCTAssertTrue(try waitForProcessExit(fixture.process, timeout: 10))
+        XCTAssertTrue(try waitForProcessExit(pid: fixture.appPID, timeout: 10))
     }
 
     // MARK: - Helpers
@@ -165,20 +166,24 @@ final class MenuBarE2ETests: XCTestCase {
     }
 
     @discardableResult
-    private func waitForProcessExit(_ process: Process?, timeout: TimeInterval) throws -> Bool {
-        guard let process else { return true }
+    private func waitForProcessExit(pid: pid_t, timeout: TimeInterval) throws -> Bool {
+        guard pid != 0 else { return true }
         let deadline = Date().addingTimeInterval(timeout)
-        while process.isRunning && Date() < deadline {
+        while Date() < deadline {
+            if let running = NSRunningApplication(processIdentifier: pid) {
+                if running.isTerminated {
+                    return true
+                }
+            } else {
+                return true
+            }
             Thread.sleep(forTimeInterval: 0.1)
         }
-        if process.isRunning {
-            throw NSError(
-                domain: "PontenE2E",
-                code: 10,
-                userInfo: [NSLocalizedDescriptionKey: "Ponten process did not exit."]
-            )
-        }
-        return true
+        throw NSError(
+            domain: "PontenE2E",
+            code: 10,
+            userInfo: [NSLocalizedDescriptionKey: "Ponten process did not exit."]
+        )
     }
 }
 

@@ -13,6 +13,13 @@ final class E2ETestFixture {
     private(set) var process: Process?
     private(set) var appPID: pid_t = 0
 
+    var isAppRunning: Bool {
+        guard appPID != 0, let running = NSRunningApplication(processIdentifier: appPID) else {
+            return false
+        }
+        return !running.isTerminated
+    }
+
     init(dataDirectory: String? = nil) throws {
         Self.serializationLock.lock()
 
@@ -136,33 +143,37 @@ final class E2ETestFixture {
 
     private func launchApp(dataDirectory: String) throws {
         let appBundle = try Self.resolveAppBundle()
-        let executable = appBundle.appendingPathComponent("Contents/MacOS/Ponten")
 
         var environment = ProcessInfo.processInfo.environment
         environment["PONTEN_E2E"] = "1"
         environment["PONTEN_DATA_DIR"] = dataDirectory
 
-        let process = Process()
-        process.executableURL = executable
-        process.arguments = ["--e2e", "--data-dir=\(dataDirectory)"]
-        process.environment = environment
-        process.currentDirectoryURL = appBundle.deletingLastPathComponent()
+        let openProcess = Process()
+        openProcess.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        openProcess.arguments = [
+            "-n", "-a", appBundle.path,
+            "--args", "--e2e", "--data-dir=\(dataDirectory)"
+        ]
+        openProcess.environment = environment
+        try openProcess.run()
+        openProcess.waitUntilExit()
 
-        try process.run()
-        self.process = process
-        appPID = process.processIdentifier
+        guard openProcess.terminationStatus == 0 else {
+            throw NSError(
+                domain: "PontenE2E",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to launch Ponten via open (exit \(openProcess.terminationStatus))."]
+            )
+        }
 
-        let deadline = Date().addingTimeInterval(15)
+        let deadline = Date().addingTimeInterval(20)
         while Date() < deadline {
-            if !process.isRunning {
-                throw NSError(
-                    domain: "PontenE2E",
-                    code: 2,
-                    userInfo: [NSLocalizedDescriptionKey: "Ponten exited immediately with code \(process.terminationStatus)."]
-                )
-            }
-            if waitForMainWindow(timeout: 0.5) != nil {
-                return
+            if let running = NSRunningApplication.runningApplications(withBundleIdentifier: "com.ponten.app")
+                .first(where: { !$0.isTerminated }) {
+                appPID = running.processIdentifier
+                if waitForMainWindow(timeout: 0.5) != nil {
+                    return
+                }
             }
             Thread.sleep(forTimeInterval: 0.2)
         }
@@ -170,25 +181,25 @@ final class E2ETestFixture {
         throw NSError(
             domain: "PontenE2E",
             code: 3,
-            userInfo: [NSLocalizedDescriptionKey: "Ponten main window was not found within 15 seconds."]
+            userInfo: [NSLocalizedDescriptionKey: "Ponten main window was not found within 20 seconds."]
         )
     }
 
     private func terminateApp() {
-        guard let process else { return }
-
-        if process.isRunning {
-            process.interrupt()
-            let deadline = Date().addingTimeInterval(3)
-            while process.isRunning && Date() < deadline {
-                Thread.sleep(forTimeInterval: 0.1)
-            }
-            if process.isRunning {
-                process.terminate()
-                _ = process.waitUntilExit()
+        if appPID != 0,
+           let running = NSRunningApplication(processIdentifier: appPID),
+           !running.isTerminated {
+            running.terminate()
+            _ = running.waitUntilTerminated(timeout: 5)
+            if !running.isTerminated {
+                running.forceTerminate()
+                _ = running.waitUntilTerminated(timeout: 3)
             }
         }
-        self.process = nil
+
+        Self.killStalePontenProcesses()
+        process = nil
+        appPID = 0
     }
 
     // MARK: - Accessibility helpers
@@ -197,7 +208,7 @@ final class E2ETestFixture {
         let deadline = Date().addingTimeInterval(timeout)
 
         while Date() < deadline {
-            if let process, !process.isRunning {
+            if !isAppRunning {
                 return nil
             }
 

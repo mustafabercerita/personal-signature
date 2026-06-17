@@ -15,9 +15,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - App Lifecycle
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    func applicationWillFinishLaunching(_ notification: Notification) {
         if E2EMode.isEnabled {
             NSApp.setActivationPolicy(.regular)
+        }
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        if E2EMode.isEnabled {
             setupE2EWindow()
             return
         }
@@ -207,8 +212,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - E2E Window
 
     private func setupE2EWindow() {
-        NSApp.setActivationPolicy(.regular)
-
         let contentView = MenuBarView()
             .environmentObject(signatureManager)
         let hostingController = NSHostingController(rootView: contentView)
@@ -224,6 +227,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             defer: false
         )
         window.title = "Ponten Menu"
+        window.identifier = NSUserInterfaceItemIdentifier("PontenMenu")
+        window.setAccessibilityIdentifier("PontenMenu")
         window.contentViewController = hostingController
         window.center()
         window.makeKeyAndOrderFront(nil)

@@ -37,6 +37,7 @@ jobs:
       - name: Run Unit & E2E Tests
         run: |
           set -o pipefail
+          sudo /usr/sbin/DevToolsSecurity -enable
           cd macos && xcodebuild test \
             -project "Ponten.xcodeproj" \
             -scheme "Ponten" \
