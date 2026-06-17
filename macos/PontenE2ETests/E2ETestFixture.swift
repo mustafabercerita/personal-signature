@@ -176,9 +176,23 @@ final class E2ETestFixture {
         )
     }
 
+    private static var runLoopThread: Thread?
+
     private static func ensureTestApplication() {
         let app = NSApplication.shared
         app.setActivationPolicy(.regular)
+
+        if runLoopThread == nil {
+            let thread = Thread {
+                while !Thread.current.isCancelled {
+                    RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.1))
+                }
+            }
+            thread.name = "PontenE2ERunLoop"
+            thread.start()
+            runLoopThread = thread
+        }
+
         app.activate(ignoringOtherApps: true)
     }
 
