@@ -18,7 +18,7 @@ namespace PontenWPF
     public partial class MenuBarView : Window
     {
         private SignatureStorage _storage = new SignatureStorage();
-        private SignatureManager _manager = new SignatureManager();
+        private ImageProcessor _manager = new ImageProcessor();
         private GlobalShortcutManager? _shortcutManager;
         public ObservableCollection<SignatureDisplayItem> DisplayItems { get; set; } = new();
 
@@ -57,7 +57,7 @@ namespace PontenWPF
                             Clipboard.SetImage(active.ImageSource);
                             _manager.AutoPaste();
                         }
-                        catch (Exception) { /* Handle clipboard error gracefully */ }
+                        catch (Exception ex) { App.Log($"Clipboard error: {ex.Message}"); }
                     }
                 }
             };
@@ -70,6 +70,8 @@ namespace PontenWPF
 
         private void MenuBarView_Loaded(object sender, RoutedEventArgs e)
         {
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            VersionLabel.Text = $"v{version?.Major}.{version?.Minor}.{version?.Build}";
             LoadSignatures();
             LaunchAtLoginCheck.IsChecked = _storage.Settings.LaunchAtLogin;
             AutoPasteCheck.IsChecked = _storage.Settings.AutoPaste;
@@ -159,7 +161,7 @@ namespace PontenWPF
                             });
                         }
                     }
-                    catch (Exception) { /* Handle clipboard error gracefully */ }
+                    catch (Exception ex) { App.Log($"Clipboard error: {ex.Message}"); }
                 }
             }
         }
@@ -212,7 +214,8 @@ namespace PontenWPF
 
         private void CheckUpdates_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Ponten is up to date (v1.2.12).", "Update", MessageBoxButton.OK, MessageBoxImage.Information);
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            MessageBox.Show($"Ponten is up to date (v{version?.Major}.{version?.Minor}.{version?.Build}).", "Update", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void Quit_Click(object sender, RoutedEventArgs e)

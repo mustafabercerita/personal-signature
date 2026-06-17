@@ -242,17 +242,13 @@ struct ImageEditorView: View {
         manager.pendingEditSignatureID = nil
         manager.isProcessing = true
         
-        DispatchQueue.global(qos: .userInitiated).async {
+        Task { @MainActor in
             do {
                 try manager.saveSignature(image: finalImage, removeBackground: false, vectorize: false, overwriteID: targetID)
-                DispatchQueue.main.async {
-                    manager.isProcessing = false
-                }
+                manager.isProcessing = false
             } catch {
-                DispatchQueue.main.async {
-                    manager.errorMessage = error.localizedDescription
-                    manager.isProcessing = false
-                }
+                manager.errorMessage = error.localizedDescription
+                manager.isProcessing = false
             }
         }
     }

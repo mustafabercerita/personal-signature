@@ -1,0 +1,97 @@
+import AppKit
+import Foundation
+
+struct SignatureItem: Codable, Identifiable, Equatable {
+    var id: UUID
+    var filename: String
+    var name: String?
+}
+
+struct IndexWrapper: Codable {
+    var items: [SignatureItem]
+    var activeID: UUID?
+}
+
+/// Persists signature image files and the index manifest on disk.
+final class SignatureStore {
+
+    let storageDirectory: URL
+
+    private var indexPath: URL {
+        storageDirectory.appendingPathComponent("index.json")
+    }
+
+    init(storageDirectory: URL) {
+        self.storageDirectory = storageDirectory
+        try? FileManager.default.createDirectory(at: storageDirectory, withIntermediateDirectories: true)
+    }
+
+    static func defaultStorageDirectory() -> URL {
+        let appSupport = FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
+        let dir = appSupport.appendingPathComponent("Ponten", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    func load() -> [(SignatureItem, NSImage)] {
+        guard let data = try? Data(contentsOf: indexPath),
+              let wrapper = try? JSONDecoder().decode(IndexWrapper.self, from: data) else {
+            return migrateLegacySignature()
+        }
+
+        var loaded: [(SignatureItem, NSImage)] = []
+        for item in wrapper.items {
+            let path = filePath(for: item.filename)
+            if let img = NSImage(contentsOf: path) {
+                loaded.append((item, img))
+            }
+        }
+        return loaded
+    }
+
+    func loadActiveID() -> UUID? {
+        guard let data = try? Data(contentsOf: indexPath),
+              let wrapper = try? JSONDecoder().decode(IndexWrapper.self, from: data) else {
+            return nil
+        }
+        return wrapper.activeID
+    }
+
+    func saveIndex(items: [SignatureItem], activeID: UUID?) {
+        let wrapper = IndexWrapper(items: items, activeID: activeID)
+        if let data = try? JSONEncoder().encode(wrapper) {
+            try? data.write(to: indexPath, options: .atomic)
+        }
+    }
+
+    func deleteFile(filename: String) {
+        let path = filePath(for: filename)
+        try? FileManager.default.removeItem(at: path)
+    }
+
+    func filePath(for filename: String) -> URL {
+        storageDirectory.appendingPathComponent(filename)
+    }
+
+    func writePNG(data: Data, filename: String) throws {
+        try data.write(to: filePath(for: filename), options: .atomic)
+    }
+
+    // MARK: - Migration
+
+    private func migrateLegacySignature() -> [(SignatureItem, NSImage)] {
+        let oldPath = filePath(for: "signature.png")
+        guard FileManager.default.fileExists(atPath: oldPath.path),
+              let img = NSImage(contentsOf: oldPath) else {
+            return []
+        }
+
+        let id = UUID()
+        let newItem = SignatureItem(id: id, filename: "signature.png")
+        saveIndex(items: [newItem], activeID: id)
+        return [(newItem, img)]
+    }
+}

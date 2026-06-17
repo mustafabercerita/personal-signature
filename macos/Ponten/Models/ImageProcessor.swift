@@ -1,6 +1,7 @@
 import AppKit
 import CoreImage
 import CoreImage.CIFilterBuiltins
+import Vision
 
 class ImageProcessor {
     
@@ -176,5 +177,125 @@ class ImageProcessor {
         guard let croppedCGImage = bitmapResult.cgImage.cropping(to: cropRect) else { return nil }
         
         return NSImage(cgImage: croppedCGImage, size: NSSize(width: croppedCGImage.width, height: croppedCGImage.height))
+    }
+}
+
+// MARK: - Background Removal, Validation, and Vectorization
+
+extension NSImage {
+    /// Removes white background from a signature image, making the ink black and paper transparent.
+    func removingWhiteBackground() -> NSImage? {
+        guard let tiffData = self.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData),
+              let ciImage = CIImage(bitmapImageRep: bitmap) else {
+            return nil
+        }
+
+        let invertFilter = CIFilter.colorInvert()
+        invertFilter.inputImage = ciImage
+        guard let maskImage = invertFilter.outputImage else { return nil }
+
+        let blendFilter = CIFilter.blendWithMask()
+        blendFilter.inputImage = ciImage
+        blendFilter.backgroundImage = CIImage.empty()
+        blendFilter.maskImage = maskImage
+
+        guard let finalCIImage = blendFilter.outputImage else { return nil }
+
+        let rep = NSCIImageRep(ciImage: finalCIImage)
+        let finalImage = NSImage(size: rep.size)
+        finalImage.addRepresentation(rep)
+        return finalImage
+    }
+
+    func hasPredominantlyWhiteOrTransparentEdges() -> Bool {
+        guard let cgImage = self.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return true }
+
+        let width = cgImage.width
+        let height = cgImage.height
+
+        guard width > 10 && height > 10 else { return true }
+
+        let bytesPerPixel = 4
+        let bytesPerRow = bytesPerPixel * width
+        var pixelData = [UInt8](repeating: 0, count: height * bytesPerRow)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let context = CGContext(data: &pixelData,
+                                width: width,
+                                height: height,
+                                bitsPerComponent: 8,
+                                bytesPerRow: bytesPerRow,
+                                space: colorSpace,
+                                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+
+        guard let ctx = context else { return true }
+        ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)))
+
+        var edgePixelCount = 0
+        var whiteOrTransparentCount = 0
+        let margin = 2
+
+        for y in 0..<height {
+            for x in 0..<width {
+                if x < margin || x >= width - margin || y < margin || y >= height - margin {
+                    edgePixelCount += 1
+                    let offset = (y * bytesPerRow) + (x * bytesPerPixel)
+                    let r = pixelData[offset]
+                    let g = pixelData[offset + 1]
+                    let b = pixelData[offset + 2]
+                    let a = pixelData[offset + 3]
+
+                    if a < 10 {
+                        whiteOrTransparentCount += 1
+                    } else if r > 240 && g > 240 && b > 240 {
+                        whiteOrTransparentCount += 1
+                    }
+                }
+            }
+        }
+
+        guard edgePixelCount > 0 else { return true }
+        let ratio = Double(whiteOrTransparentCount) / Double(edgePixelCount)
+        return ratio > 0.8
+    }
+
+    func replacingWithVectorizedStroke() -> NSImage? {
+        guard let cgImage = self.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
+
+        let width = cgImage.width
+        let height = cgImage.height
+
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0, space: colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+
+        context.setFillColor(NSColor.white.cgColor)
+        context.fill(CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)))
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)))
+
+        guard let whiteBgImage = context.makeImage() else { return nil }
+
+        let request = VNDetectContoursRequest()
+        request.detectsDarkOnLight = true
+
+        let handler = VNImageRequestHandler(cgImage: whiteBgImage, options: [:])
+        try? handler.perform([request])
+
+        guard let observation = request.results?.first else { return nil }
+
+        let normalizedPath = observation.normalizedPath
+        var transform = CGAffineTransform(scaleX: CGFloat(width), y: CGFloat(height))
+        guard let scaledPath = normalizedPath.copy(using: &transform) else { return nil }
+
+        let newImage = NSImage(size: NSSize(width: width, height: height))
+        newImage.lockFocus()
+
+        if let ctx = NSGraphicsContext.current?.cgContext {
+            ctx.setFillColor(NSColor.black.cgColor)
+            ctx.addPath(scaledPath)
+            ctx.fillPath(using: .evenOdd)
+        }
+
+        newImage.unlockFocus()
+        return newImage
     }
 }
