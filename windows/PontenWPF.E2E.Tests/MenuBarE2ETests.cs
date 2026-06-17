@@ -43,13 +43,14 @@ public class MenuBarE2ETests
         var window = fixture.WaitForMainWindow();
         fixture.RequireElement(window, cf => cf.ByName("Test Signature"));
 
+        fixture.RequireElement(window, cf => cf.ByName("Test Signature")).Click();
+
         var signButton = fixture.RequireElement(
             window,
             cf => cf.ByControlType(ControlType.Button).And(cf.ByName("Sign"))).AsButton();
         signButton.Click();
 
-        var statusText = fixture.RequireTextContaining(window, "copied", TimeSpan.FromSeconds(10));
-        Assert.Contains("copied", statusText.Name, StringComparison.OrdinalIgnoreCase);
+        fixture.WaitForCopyMarker(dataDirectory);
     }
 
     [Fact]
@@ -85,9 +86,17 @@ public class MenuBarE2ETests
 
         var restartedAutoPaste = restarted.WaitForCheckBoxChecked(
             restartedWindow,
-            "Auto-paste after copying",
-            TimeSpan.FromSeconds(20));
+            "Auto-paste after copying");
         Assert.True(restartedAutoPaste.IsChecked.GetValueOrDefault());
+
+        try
+        {
+            Directory.Delete(dataDirectory, true);
+        }
+        catch
+        {
+            // Best-effort temp cleanup.
+        }
     }
 
     [Fact]

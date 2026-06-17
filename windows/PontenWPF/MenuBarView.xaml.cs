@@ -192,6 +192,24 @@ namespace PontenWPF
             this.Activate();
         }
 
+        private static void WriteE2ECopyMarker()
+        {
+            if (string.IsNullOrEmpty(E2EMode.DataDirectory))
+            {
+                return;
+            }
+
+            try
+            {
+                var markerPath = Path.Combine(E2EMode.DataDirectory, "e2e-last-copy.txt");
+                File.WriteAllText(markerPath, DateTime.UtcNow.ToString("O"));
+            }
+            catch (Exception ex)
+            {
+                App.Log($"Failed to write E2E copy marker: {ex.Message}");
+            }
+        }
+
         private void ShowStatus(string message)
         {
             StatusText.Text = message;
@@ -239,6 +257,7 @@ namespace PontenWPF
             {
                 if (E2EMode.IsEnabled)
                 {
+                    WriteE2ECopyMarker();
                     ShowStatus("Signature copied ✓");
                 }
                 else

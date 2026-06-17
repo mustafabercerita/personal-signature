@@ -14,12 +14,15 @@ namespace PontenWPF.E2E.Tests;
 
 public sealed class E2ETestFixture : IDisposable
 {
+    private readonly bool _deleteDataDirectoryOnDispose;
+
     public string DataDirectory { get; }
     public UIA3Automation Automation { get; }
     public Application Application { get; }
 
     public E2ETestFixture(string? dataDirectory = null)
     {
+        _deleteDataDirectoryOnDispose = dataDirectory is null;
         DataDirectory = dataDirectory ?? Path.Combine(Path.GetTempPath(), "PontenE2E_" + Guid.NewGuid().ToString());
         Directory.CreateDirectory(DataDirectory);
 
@@ -236,6 +239,25 @@ public sealed class E2ETestFixture : IDisposable
         throw new TimeoutException($"Checkbox '{label}' was not checked.");
     }
 
+    public void WaitForCopyMarker(string dataDirectory, TimeSpan? timeout = null)
+    {
+        timeout ??= TimeSpan.FromSeconds(10);
+        var deadline = DateTime.UtcNow.Add(timeout.Value);
+        var markerPath = Path.Combine(dataDirectory, "e2e-last-copy.txt");
+
+        while (DateTime.UtcNow < deadline)
+        {
+            if (File.Exists(markerPath))
+            {
+                return;
+            }
+
+            Thread.Sleep(200);
+        }
+
+        throw new TimeoutException("E2E copy marker file was not created.");
+    }
+
     public static void AssertAutoPastePersisted(string dataDirectory)
     {
         var indexPath = Path.Combine(dataDirectory, "index.json");
@@ -335,7 +357,7 @@ public sealed class E2ETestFixture : IDisposable
         Application.Dispose();
         Automation.Dispose();
 
-        if (Directory.Exists(DataDirectory))
+        if (_deleteDataDirectoryOnDispose && Directory.Exists(DataDirectory))
         {
             try
             {
