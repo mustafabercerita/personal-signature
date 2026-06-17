@@ -14,11 +14,15 @@ internal static class E2EMode
 
         DataDirectory = Environment.GetEnvironmentVariable("PONTEN_DATA_DIR");
 
-        foreach (var arg in args)
+        for (int i = 0; i < args.Length; i++)
         {
-            if (arg.StartsWith("--data-dir=", StringComparison.Ordinal))
+            if (args[i].StartsWith("--data-dir=", StringComparison.Ordinal))
             {
-                DataDirectory = arg["--data-dir=".Length..];
+                DataDirectory = args[i]["--data-dir=".Length..].Trim('"');
+            }
+            else if (args[i] == "--data-dir" && i + 1 < args.Length)
+            {
+                DataDirectory = args[i + 1].Trim('"');
             }
         }
     }

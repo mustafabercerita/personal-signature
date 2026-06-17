@@ -25,7 +25,7 @@ public partial class App : Application
         Log($"Version: {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}");
         
         string mutexName = E2EMode.IsEnabled && !string.IsNullOrEmpty(E2EMode.DataDirectory)
-            ? $"PontenWPF.E2E.{E2EMode.DataDirectory}"
+            ? $"PontenWPF.E2E.{E2EMode.DataDirectory.GetHashCode(StringComparison.OrdinalIgnoreCase):X8}"
             : MutexName;
 
         _mutex = new Mutex(true, mutexName, out _hasMutex);

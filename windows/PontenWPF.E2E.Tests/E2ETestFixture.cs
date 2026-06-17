@@ -6,6 +6,7 @@ using System.Text.Json;
 using FlaUI.Core;
 using FlaUI.Core.AutomationElements;
 using FlaUI.UIA3;
+using PontenWPF;
 
 namespace PontenWPF.E2E.Tests;
 
@@ -69,7 +70,7 @@ public sealed class E2ETestFixture : IDisposable
     private static Application LaunchApp(string dataDirectory)
     {
         var exePath = ResolveAppExecutable();
-        return Application.Launch(exePath, $"--e2e --data-dir={dataDirectory}");
+        return Application.Launch(exePath, $"--e2e --data-dir=\"{dataDirectory}\"");
     }
 
     public Window WaitForMainWindow(TimeSpan? timeout = null)
@@ -165,28 +166,23 @@ public sealed class E2ETestFixture : IDisposable
             bitmap.Save(imagePath, ImageFormat.Png);
         }
 
-        var index = new
+        var wrapper = new IndexWrapper
         {
-            Items = new[]
-            {
-                new
+            Items =
+            [
+                new SignatureItem
                 {
                     Id = signatureId,
                     Filename = filename,
                     Name = name
                 }
-            },
+            ],
             ActiveID = signatureId,
-            Settings = new
-            {
-                LaunchAtLogin = false,
-                AutoPaste = false,
-                RemoveBackground = true
-            }
+            Settings = new UserSettings()
         };
 
         var indexPath = Path.Combine(dataDirectory, "index.json");
-        File.WriteAllText(indexPath, JsonSerializer.Serialize(index, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(indexPath, JsonSerializer.Serialize(wrapper, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     public void Dispose()
