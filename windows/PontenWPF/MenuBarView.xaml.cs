@@ -52,6 +52,11 @@ namespace PontenWPF
 
             SignaturesListBox.ItemsSource = DisplayItems;
             ConfigureAutomationIds();
+
+            if (E2EMode.IsEnabled)
+            {
+                ShowInTaskbar = true;
+            }
         }
 
         private void ConfigureAutomationIds()
@@ -120,6 +125,11 @@ namespace PontenWPF
             LaunchAtLoginCheck.IsChecked = _storage.Settings.LaunchAtLogin;
             AutoPasteCheck.IsChecked = _storage.Settings.AutoPaste;
             RemoveBgToggle.IsChecked = _storage.Settings.RemoveBackground;
+
+            if (E2EMode.IsEnabled)
+            {
+                ShowAtBottomRight();
+            }
         }
 
         private void LoadSignatures()

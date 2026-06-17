@@ -2,7 +2,11 @@ using FlaUI.Core.AutomationElements;
 
 namespace PontenWPF.E2E.Tests;
 
+[CollectionDefinition("E2E", DisableParallelization = true)]
+public sealed class E2ECollection;
+
 [Trait("Category", "E2E")]
+[Collection("E2E")]
 public class MenuBarE2ETests
 {
     [Fact]

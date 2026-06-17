@@ -24,16 +24,23 @@ public partial class App : Application
         string? exePath = Environment.ProcessPath ?? System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
         Log($"Version: {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}");
         
-        _mutex = new Mutex(true, MutexName, out _hasMutex);
+        string mutexName = E2EMode.IsEnabled && !string.IsNullOrEmpty(E2EMode.DataDirectory)
+            ? $"PontenWPF.E2E.{E2EMode.DataDirectory}"
+            : MutexName;
+
+        _mutex = new Mutex(true, mutexName, out _hasMutex);
 
         if (!_hasMutex)
         {
             Log("Another instance is already running. Exiting.");
-            MessageBox.Show(
-                "Ponten is already running in the system tray",
-                "Ponten",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            if (!E2EMode.IsEnabled)
+            {
+                MessageBox.Show(
+                    "Ponten is already running in the system tray",
+                    "Ponten",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
             Environment.Exit(0);
             return;
         }
@@ -73,6 +80,14 @@ public partial class App : Application
         };
 
         base.OnStartup(e);
+
+        if (E2EMode.IsEnabled)
+        {
+            MainWindow = new MenuBarView();
+            Log("Main Window created (E2E mode)");
+            return;
+        }
+
         try 
         {
             Log("Extracting Associated Icon...");
@@ -150,11 +165,6 @@ public partial class App : Application
         
         MainWindow = new MenuBarView();
         Log("Main Window created");
-
-        if (E2EMode.IsEnabled && MainWindow is MenuBarView menuBarView)
-        {
-            Dispatcher.BeginInvoke(menuBarView.ShowAtBottomRight);
-        }
     }
 
     private void NotifyIcon_TrayLeftMouseUp(object sender, RoutedEventArgs e)

@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Text;
 using System.Text.Json;
 using FlaUI.Core;
 using FlaUI.Core.AutomationElements;
@@ -18,8 +20,28 @@ public sealed class E2ETestFixture : IDisposable
         DataDirectory = dataDirectory ?? Path.Combine(Path.GetTempPath(), "PontenE2E_" + Guid.NewGuid().ToString());
         Directory.CreateDirectory(DataDirectory);
 
+        KillStalePontenProcesses();
         Automation = new UIA3Automation();
         Application = LaunchApp(DataDirectory);
+    }
+
+    private static void KillStalePontenProcesses()
+    {
+        foreach (var process in Process.GetProcessesByName("PontenWPF"))
+        {
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                    process.WaitForExit(3000);
+                }
+            }
+            catch
+            {
+                // Best-effort cleanup between E2E runs.
+            }
+        }
     }
 
     public static string ResolveAppExecutable()
@@ -57,19 +79,54 @@ public sealed class E2ETestFixture : IDisposable
 
         while (DateTime.UtcNow < deadline)
         {
-            foreach (var window in Application.GetAllTopLevelWindows(Automation))
+            if (Application.HasExited)
             {
-                var automationId = window.Properties.AutomationId.ValueOrDefault;
-                if (automationId == "PontenMainWindow" || window.Name == "Ponten Menu")
-                {
-                    return window;
-                }
+                throw new InvalidOperationException(
+                    $"Ponten exited before showing the main window (exit code {Application.ExitCode}). {ReadLaunchDiagnostics()}");
+            }
+
+            var window = FindPontenWindow(Application.GetAllTopLevelWindows(Automation))
+                ?? FindPontenWindow(Automation.GetDesktop().FindAllChildren());
+            if (window != null)
+            {
+                return window.AsWindow();
             }
 
             Thread.Sleep(200);
         }
 
-        throw new TimeoutException("Ponten main window was not found.");
+        throw new TimeoutException($"Ponten main window was not found. {ReadLaunchDiagnostics()}");
+    }
+
+    private string ReadLaunchDiagnostics()
+    {
+        var builder = new StringBuilder();
+        builder.Append($"ProcessId={Application.ProcessId}; ");
+
+        var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Ponten", "logs", "app.log");
+        if (File.Exists(logPath))
+        {
+            var lines = File.ReadAllLines(logPath);
+            var tail = lines.TakeLast(5);
+            builder.Append("LogTail=");
+            builder.Append(string.Join(" | ", tail));
+        }
+
+        return builder.ToString();
+    }
+
+    private static AutomationElement? FindPontenWindow(IEnumerable<AutomationElement> windows)
+    {
+        foreach (var window in windows)
+        {
+            var automationId = window.Properties.AutomationId.ValueOrDefault;
+            if (automationId == "PontenMainWindow" || window.Name == "Ponten Menu")
+            {
+                return window;
+            }
+        }
+
+        return null;
     }
 
     public AutomationElement RequireElement(Window window, string automationId, TimeSpan? timeout = null)
