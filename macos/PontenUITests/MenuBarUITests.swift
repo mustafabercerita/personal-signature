@@ -68,7 +68,7 @@ final class MenuBarUITests: XCTestCase {
         try waitForAutoPasteEnabled(dataDirectory: dataDirectory)
 
         window.buttons["Quit"].click()
-        XCTAssertTrue(window.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(waitForWindowToClose(window, timeout: 5))
         try assertAutoPastePersisted(dataDirectory: dataDirectory)
 
         try launchApp(dataDirectory: dataDirectory)
@@ -91,10 +91,19 @@ final class MenuBarUITests: XCTestCase {
         let window = app.windows["Ponten Menu"]
         XCTAssertTrue(window.waitForExistence(timeout: 15))
         window.buttons["Quit"].click()
-        XCTAssertTrue(window.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(waitForWindowToClose(window, timeout: 5))
     }
 
     // MARK: - Helpers
+
+    private func waitForWindowToClose(_ element: XCUIElement, timeout: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if !element.exists { return true }
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+        return !element.exists
+    }
 
     private func launchApp(dataDirectory: String) throws {
         app.terminate()
