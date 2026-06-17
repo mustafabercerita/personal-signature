@@ -48,13 +48,23 @@
             </BuildableReference>
          </TestableReference>
          <TestableReference
-            skipped = "NO"
+            skipped = "YES"
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "T002"
                BuildableName = "PontenE2ETests.xctest"
                BlueprintName = "PontenE2ETests"
+               ReferencedContainer = "container:Ponten.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "CCAACAFED56CB3FF48BEE16A"
+               BuildableName = "PontenUITests.xctest"
+               BlueprintName = "PontenUITests"
                ReferencedContainer = "container:Ponten.xcodeproj">
             </BuildableReference>
          </TestableReference>

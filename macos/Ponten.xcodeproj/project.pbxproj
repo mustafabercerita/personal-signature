@@ -12,10 +12,12 @@
 		1120A2BBD5F5CDEF342B0263 /* GlobalShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4636EB3E58AA004A68B3DE2 /* GlobalShortcutManager.swift */; };
 		1331B8C6458D4593AD8B54F3 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43484E7F379C374B0B69DF15 /* EmptyStateView.swift */; };
 		171BB0EA90A4FC55C5FD3537 /* ImageEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C7628AF5738F410268B6B01 /* ImageEditorView.swift */; };
+		1AE52752D98500F6A6B32593 /* MenuBarUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A77A281BC3A931ECE543803 /* MenuBarUITests.swift */; };
 		269A0BC2654FAB21D9956828 /* EventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F006 /* EventMonitor.swift */; };
 		2D67FA73A28F07F1C18E11FA /* SignatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F003 /* SignatureManager.swift */; };
 		3F0F2EB29D34BBF310950D33 /* GlobalShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4636EB3E58AA004A68B3DE2 /* GlobalShortcutManager.swift */; };
 		472D05B59AD328CEBC0EC3E0 /* FooterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39AA7F404CE26C6EFA1DED02 /* FooterView.swift */; };
+		67215B4BB344FC88ACE3CA54 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0498776DFA9F27762D41BFC8 /* Cocoa.framework */; };
 		6BAE60826E8D53E01F415ADE /* ImageProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D95262DBEF0D230B8D9EEEE7 /* ImageProcessorTests.swift */; };
 		7E0E2D3B436FF382F391C3D1 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F87D7B490E82F4CBEFB0C5D3 /* AboutView.swift */; };
 		8464BC4936E5F56B14EB1D27 /* SignatureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF4B16AFA79F617EF93C299C /* SignatureStore.swift */; };
@@ -41,6 +43,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		A1477FE45B57FBCC8B548E75 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = PROJ000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = T000;
+			remoteInfo = Ponten;
+		};
 		TP001 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = PROJ000 /* Project object */;
@@ -58,12 +67,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0498776DFA9F27762D41BFC8 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
 		0D71898F773ACC800CD5B077 /* ImageProcessor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ImageProcessor.swift; sourceTree = "<group>"; };
 		2411416A70CEA0740C21E207 /* E2EInProcessHost.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = E2EInProcessHost.swift; sourceTree = "<group>"; };
 		2679ED8624C7A36115C89115 /* HeaderView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HeaderView.swift; sourceTree = "<group>"; };
 		2C7628AF5738F410268B6B01 /* ImageEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ImageEditorView.swift; sourceTree = "<group>"; };
 		39AA7F404CE26C6EFA1DED02 /* FooterView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FooterView.swift; sourceTree = "<group>"; };
+		3A77A281BC3A931ECE543803 /* MenuBarUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MenuBarUITests.swift; sourceTree = "<group>"; };
 		43484E7F379C374B0B69DF15 /* EmptyStateView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
+		521C5C2D6D47577B4FC04FDC /* PontenUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PontenUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B9F39EFEE38AEA389D531603 /* E2EMenuPanelView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = E2EMenuPanelView.swift; sourceTree = "<group>"; };
 		C4636EB3E58AA004A68B3DE2 /* GlobalShortcutManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GlobalShortcutManager.swift; sourceTree = "<group>"; };
 		C80F754AF0AA1DECA02DF29D /* DrawingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DrawingView.swift; sourceTree = "<group>"; };
@@ -111,9 +123,41 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EAE9436097DA1192309ABC2F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				67215B4BB344FC88ACE3CA54 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		587F5B0C0529D1B4815E80A3 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				B3E770374651C309B367AFCE /* OS X */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		B16CB3DC5E6CFFA098423B2C /* PontenUITests */ = {
+			isa = PBXGroup;
+			children = (
+				3A77A281BC3A931ECE543803 /* MenuBarUITests.swift */,
+			);
+			name = PontenUITests;
+			sourceTree = "<group>";
+		};
+		B3E770374651C309B367AFCE /* OS X */ = {
+			isa = PBXGroup;
+			children = (
+				0498776DFA9F27762D41BFC8 /* Cocoa.framework */,
+			);
+			name = "OS X";
+			sourceTree = "<group>";
+		};
 		G000 = {
 			isa = PBXGroup;
 			children = (
@@ -121,6 +165,8 @@
 				G007 /* PontenTests */,
 				G008 /* PontenE2ETests */,
 				G009 /* Products */,
+				587F5B0C0529D1B4815E80A3 /* Frameworks */,
+				B16CB3DC5E6CFFA098423B2C /* PontenUITests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -217,6 +263,7 @@
 				F000 /* Ponten.app */,
 				F011 /* PontenTests.xctest */,
 				F015 /* PontenE2ETests.xctest */,
+				521C5C2D6D47577B4FC04FDC /* PontenUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -224,6 +271,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		CCAACAFED56CB3FF48BEE16A /* PontenUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 518F9120C8CA01184F4F0C38 /* Build configuration list for PBXNativeTarget "PontenUITests" */;
+			buildPhases = (
+				B59874B57496385D3DBE2959 /* Sources */,
+				EAE9436097DA1192309ABC2F /* Frameworks */,
+				038827D76E501F243AC5257D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5F84FDFD91530F512FAD4CF8 /* PBXTargetDependency */,
+			);
+			name = PontenUITests;
+			productName = PontenUITests;
+			productReference = 521C5C2D6D47577B4FC04FDC /* PontenUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		T000 /* Ponten */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = XCB000 /* Build configuration list for PBXNativeTarget "Ponten" */;
@@ -315,11 +380,19 @@
 				T000 /* Ponten */,
 				T001 /* PontenTests */,
 				T002 /* PontenE2ETests */,
+				CCAACAFED56CB3FF48BEE16A /* PontenUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		038827D76E501F243AC5257D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		678765B0130E056581EC67B8 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -339,6 +412,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		B59874B57496385D3DBE2959 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1AE52752D98500F6A6B32593 /* MenuBarUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		P001 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -392,6 +473,12 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		5F84FDFD91530F512FAD4CF8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Ponten;
+			target = T000 /* Ponten */;
+			targetProxy = A1477FE45B57FBCC8B548E75 /* PBXContainerItemProxy */;
+		};
 		TD001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = T000 /* Ponten */;
@@ -405,6 +492,36 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		AEF756FA6965580827566BC8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = "";
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ponten.app.uitests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+				TEST_TARGET_NAME = Ponten;
+			};
+			name = Release;
+		};
+		B1766667D5E5373E7056E41B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = "";
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ponten.app.uitests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+				TEST_TARGET_NAME = Ponten;
+			};
+			name = Debug;
+		};
 		XCC001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -609,6 +726,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		518F9120C8CA01184F4F0C38 /* Build configuration list for PBXNativeTarget "PontenUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AEF756FA6965580827566BC8 /* Release */,
+				B1766667D5E5373E7056E41B /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		XCB000 /* Build configuration list for PBXNativeTarget "Ponten" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
