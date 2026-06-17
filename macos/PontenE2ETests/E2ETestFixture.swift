@@ -159,23 +159,14 @@ final class E2ETestFixture {
         setenv("PONTEN_DATA_DIR", dataDirectory, 1)
         setenv("PONTEN_E2E_IN_PROCESS", "1", 1)
 
-        var launchError: Error?
         let semaphore = DispatchSemaphore(value: 0)
         DispatchQueue.main.async {
-            do {
-                Self.ensureTestApplication()
-                self.inProcessHost = E2EInProcessHost(dataDirectory: dataDirectory)
-                self.appPID = ProcessInfo.processInfo.processIdentifier
-            } catch {
-                launchError = error
-            }
+            Self.ensureTestApplication()
+            self.inProcessHost = E2EInProcessHost(dataDirectory: dataDirectory)
+            self.appPID = ProcessInfo.processInfo.processIdentifier
             semaphore.signal()
         }
         semaphore.wait()
-
-        if let launchError {
-            throw launchError
-        }
 
         let deadline = Date().addingTimeInterval(10)
         while Date() < deadline {
