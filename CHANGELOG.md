@@ -9,12 +9,14 @@ versioning follows [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- **macOS E2E test suite** — 5 UI tests (XCTest + Accessibility) in `PontenE2ETests`
+- **macOS E2E test suite** — 5 UI tests (XCUITest) in `PontenUITests` (`MenuBarUITests.swift`)
 - **Windows E2E test suite** — 5 UI tests (FlaUI + xUnit) in `PontenWPF.E2E.Tests`
 - **E2E mode** — `--e2e` flag, `PONTEN_E2E=1`, and `PONTEN_DATA_DIR` for isolated test data (macOS + Windows)
 - **CI E2E** — macOS `xcodebuild test` and Windows `dotnet test Ponten.sln -c Release` run unit + E2E
 
 ### Changed
+- **macOS E2E migration** — CI and the `Ponten` scheme now run `PontenUITests` (XCUITest); legacy `PontenE2ETests` (AX-based) remain for local dev but are skipped in the scheme
+- **Windows E2E stability** — `WaitForInputIdle` made resilient in FlaUI fixture (db09540)
 - **SignatureStore extraction** — macOS persistence moved out of `SignatureManager` into dedicated `SignatureStore`
 - **ImageProcessor extensions** — image-processing helpers consolidated in `ImageProcessor.swift`
 - **Windows rename** — `SignatureManager.cs` renamed to `ImageProcessor.cs` for clarity

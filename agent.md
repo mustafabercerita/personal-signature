@@ -108,7 +108,14 @@ xcodebuild test -project Ponten.xcodeproj -scheme Ponten \
 swift test
 ```
 
-**E2E tests** (`PontenE2ETests`): 5 XCTest + Accessibility tests that launch `Ponten.app` and drive the menu UI via `AXUIElement`. macOS-only; requires a prior build of `Ponten` (the fixture locates `Ponten.app` under DerivedData / build products).
+**E2E tests** (`PontenUITests`): 5 XCUITest cases in `MenuBarUITests.swift` that launch `Ponten.app` and drive the menu UI via `XCUIApplication`. macOS-only; run via `-only-testing:PontenUITests` or the `Ponten` scheme (CI). Legacy `PontenE2ETests` (AX-based) are skipped in the scheme — local debugging only.
+
+```bash
+cd macos
+xcodebuild test -project Ponten.xcodeproj -scheme Ponten \
+  -destination "platform=macOS" -only-testing:PontenUITests \
+  -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO
+```
 
 ### Windows
 

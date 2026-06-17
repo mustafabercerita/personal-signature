@@ -30,18 +30,16 @@ swift test                                         # SPM alternative
 
 `install.sh` / `build-dmg.sh` use a manual source list — prefer Xcode for dev; update the list if using CLI scripts.
 
-`macos/Package.swift` defines `Ponten` + `PontenTests` + `PontenE2ETests` for `swift build` / `swift test`.
+`macos/Package.swift` defines `Ponten` + `PontenTests` + `PontenE2ETests` for `swift build` / `swift test` (SPM still targets the legacy AX suite; Xcode/CI use `PontenUITests`).
 
-### macOS E2E tests (XCTest + Accessibility)
+### macOS E2E tests (XCUITest)
 
-`PontenE2ETests/` contains **5** end-to-end tests that launch the real `Ponten.app` and drive the UI via `AXUIElement`. They run **only on macOS** — not on Windows or Linux.
+`PontenUITests/` contains **5** end-to-end tests in `MenuBarUITests.swift` that launch the real `Ponten.app` and drive the menu UI via XCUITest (`XCUIApplication`). They run **only on macOS** — not on Windows or Linux. The `Ponten` scheme runs these tests in CI; legacy `PontenE2ETests` (Accessibility / `AXUIElement`) are skipped in the scheme and kept for local debugging only.
 
 ```bash
 cd macos
-xcodebuild build -project Ponten.xcodeproj -scheme Ponten -configuration Debug \
-  -destination "platform=macOS,arch=arm64" CODE_SIGNING_ALLOWED=NO
 xcodebuild test -project Ponten.xcodeproj -scheme Ponten \
-  -destination "platform=macOS,arch=arm64" -only-testing:PontenE2ETests \
+  -destination "platform=macOS" -only-testing:PontenUITests \
   -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO
 ```
 

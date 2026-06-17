@@ -24,7 +24,8 @@ Ponten/
 │   │   ├── Views/         MenuBarView, HeaderView, SignatureActiveView, …
 │   │   └── Utilities/     GlobalShortcutManager, EventMonitor
 │   ├── PontenTests/       XCTest unit tests (DI via init(store:))
-│   └── PontenE2ETests/    XCTest + AXUIElement E2E (launches real Ponten.app)
+│   ├── PontenUITests/     XCUITest E2E (MenuBarUITests.swift; CI / scheme)
+│   └── PontenE2ETests/    Legacy AXUIElement E2E (skipped in scheme; local dev)
 └── windows/
     ├── PontenWPF/             App, MenuBarView, SignatureStorage, ImageProcessor, …
     ├── PontenWPF.Tests/       xUnit (custom storage directory)
@@ -223,6 +224,43 @@ Shortcut customization is not implemented on Windows yet — the footer shows a 
 ### `Updater.cs`
 
 `HttpClient`-based GitHub Releases check and download helper (`CheckForUpdateAsync`, `DownloadUpdateAndExecute`). Wired to the UI via `CheckUpdates_Click` — prompts to download and install when a newer release is available.
+
+---
+
+## macOS E2E / Test Harness
+
+macOS UI automation tests live in `PontenUITests/` and launch the real `Ponten.app` via XCUITest (`XCUIApplication`). Five tests in `MenuBarUITests.swift` mirror the Windows FlaUI suite (empty state, seeded signature, copy marker, auto-paste persistence, restart).
+
+### `E2EMode.swift` — activation & data isolation
+
+`E2EMode` reads launch arguments and environment at startup:
+
+| Switch | Source |
+|---|---|
+| **E2E enabled** | CLI `--e2e` **or** env `PONTEN_E2E=1` |
+| **Data directory** | Env `PONTEN_DATA_DIR` **or** CLI `--data-dir=<path>` |
+
+When enabled, `SignatureManager` uses `E2EMode.dataDirectory` so each test run uses an isolated temp folder instead of `~/Library/Application Support/Ponten/`.
+
+### App startup branches in E2E
+
+In `AppDelegate.applicationDidFinishLaunching`:
+
+- **E2E window** — `setupE2EWindow()` shows the menu panel immediately (no status-item click required)
+- **Global shortcut** — skipped when `E2EMode.isEnabled`
+- **Auto-paste** — skipped in E2E (same as Windows)
+
+### Clipboard substitute — `e2e-last-copy.txt`
+
+E2E mode does not touch the system clipboard. On copy, `SignatureManager` writes `{dataDir}/e2e-last-copy.txt` with a UTC timestamp. `MenuBarUITests` polls for this file to assert copy success.
+
+### `PontenUITests` (XCUITest)
+
+`MenuBarUITests` sets `PONTEN_E2E=1` and passes `--data-dir=<temp>` via launch arguments. Tests seed signatures into the isolated data directory, launch `Ponten.app`, and query accessibility-exposed UI elements (`windows["Ponten Menu"]`, buttons, toggles).
+
+### Legacy `PontenE2ETests`
+
+`PontenE2ETests/` retains an older Accessibility (`AXUIElement`) + optional in-process hosting path. The `Ponten` scheme marks this target **skipped** (`skipped = "YES"` in `Ponten.xcscheme`); use it only for local AX debugging, not CI.
 
 ---
 
@@ -440,6 +478,12 @@ Save → PNG encode → new UUID entry in index + disk
 ## Dependency Injection & Testing
 
 **macOS** — `SignatureManager` accepts `SignatureStore(storageDirectory:)` in its initializer. Production uses `SignatureManager.shared` (default store path). `PontenTests` create a temp directory and inject `SignatureManager(store: testStore)`.
+
+| Project | Scope | Isolation |
+|---|---|---|
+| `PontenTests` | XCTest unit tests | `SignatureManager(store:)` with temp `SignatureStore` |
+| `PontenUITests` | XCUITest end-to-end UI tests | Launches `Ponten.app` with `PONTEN_E2E=1` and `--data-dir=<temp>` |
+| `PontenE2ETests` | Legacy AX E2E (local dev) | Same E2E flags; skipped in `Ponten` scheme |
 
 **Windows** — two test layers:
 

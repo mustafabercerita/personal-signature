@@ -195,7 +195,8 @@ Ponten/
 │   │   ├── Utilities/               # GlobalShortcutManager, EventMonitor
 │   │   └── Resources/               # Assets, Plist
 │   ├── PontenTests/                 # XCTest suite (11 tests)
-│   ├── PontenE2ETests/              # XCTest + AX E2E tests (5 tests, macOS-only)
+│   ├── PontenUITests/               # XCUITest E2E (5 tests in MenuBarUITests.swift; CI)
+│   ├── PontenE2ETests/              # Legacy AX E2E (5 tests; skipped in scheme, local dev)
 │   ├── Package.swift                # Swift Package Manager manifest
 │   ├── Makefile                     # CLI build shortcuts
 │   ├── install.sh                   # macOS CLI installer
@@ -237,15 +238,15 @@ xcodebuild -project Ponten.xcodeproj -scheme Ponten \
   -destination 'platform=macOS' test -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO
 ```
 
-**macOS E2E only (XCTest + Accessibility, macOS-only):**
+**macOS E2E only (XCUITest via `PontenUITests`, macOS-only):**
 ```bash
 cd macos
-xcodebuild build -project Ponten.xcodeproj -scheme Ponten -configuration Debug \
-  -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
 xcodebuild test -project Ponten.xcodeproj -scheme Ponten \
-  -destination 'platform=macOS' -only-testing:PontenE2ETests \
+  -destination 'platform=macOS' -only-testing:PontenUITests \
   -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO
 ```
+
+> Legacy `PontenE2ETests` (Accessibility / `AXUIElement`) remain in the repo for local debugging but are **skipped** in the `Ponten` scheme — CI and `xcodebuild test -scheme Ponten` run `PontenUITests` instead.
 
 **macOS (Swift Package Manager — alternative):**
 ```bash
@@ -282,7 +283,7 @@ Release history: [CHANGELOG.md](CHANGELOG.md) · Developer setup: [DEVELOPMENT.m
 ### CI / Automated builds
 
 CI runs on pushes to `main` and `develop`, and on pull requests targeting `main`.  
-CI runs unit tests and E2E tests on both platforms (Windows: FlaUI; macOS: XCTest + AX).
+CI runs unit tests and E2E tests on both platforms (Windows: FlaUI; macOS: XCUITest via `PontenUITests`).
 Pushing a tag matching `v*` triggers a GitHub Actions release that:
 - Builds macOS DMG and runs unit tests
 - Builds Windows installer (`Ponten-Setup-X.Y.Z.exe`) via Inno Setup
