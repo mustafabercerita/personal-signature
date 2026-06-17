@@ -29,39 +29,35 @@ final class E2ETestFixture {
     }
 
     init(dataDirectory: String? = nil) throws {
-        Self.serializationLock.lock()
-
         deleteDataDirectoryOnDispose = dataDirectory == nil
         let resolvedDirectory = dataDirectory ?? FileManager.default.temporaryDirectory
             .appendingPathComponent("PontenE2E_\(UUID().uuidString)", isDirectory: true)
             .path
         self.dataDirectory = resolvedDirectory
 
-        do {
-            try FileManager.default.createDirectory(
-                atPath: resolvedDirectory,
-                withIntermediateDirectories: true
-            )
+        try FileManager.default.createDirectory(
+            atPath: resolvedDirectory,
+            withIntermediateDirectories: true
+        )
 
-            usesInProcess = Self.useInProcess
+        usesInProcess = Self.useInProcess
+        try Self.withSerialization {
             if usesInProcess {
                 try launchInProcess(dataDirectory: resolvedDirectory)
             } else {
                 Self.killStalePontenProcesses()
                 try launchApp(dataDirectory: resolvedDirectory)
             }
-        } catch {
-            Self.serializationLock.unlock()
-            throw error
         }
     }
 
     deinit {
-        terminateApp()
+        try? Self.withSerialization {
+            terminateApp()
+        }
         if deleteDataDirectoryOnDispose {
             try? FileManager.default.removeItem(atPath: dataDirectory)
         }
-        Self.serializationLock.unlock()
     }
 
     // MARK: - App lifecycle
@@ -499,36 +495,45 @@ final class E2ETestFixture {
         stringAttribute(element, attribute: kAXRoleAttribute)
     }
 
-    /// TEST_HOST runs XCTest on the main thread; sync dispatch deadlocks without run-loop pumping.
-    private func performOnMainAndWait(_ block: @escaping () throws -> Void) throws {
-        if Thread.isMainThread {
-            var completed = false
-            var thrown: Error?
-            DispatchQueue.main.async {
-                do {
-                    try block()
-                } catch {
-                    thrown = error
-                }
-                completed = true
-            }
-
-            let deadline = Date().addingTimeInterval(10)
-            while !completed && Date() < deadline {
-                RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.05))
-            }
-
-            if let thrown { throw thrown }
-            guard completed else {
+    private static func withSerialization<T>(_ body: () throws -> T) throws -> T {
+        let deadline = Date().addingTimeInterval(30)
+        while !serializationLock.try() {
+            guard Date() < deadline else {
                 throw NSError(
                     domain: "PontenE2E",
-                    code: 11,
-                    userInfo: [NSLocalizedDescriptionKey: "Timed out waiting for main-thread UI work."]
+                    code: 12,
+                    userInfo: [NSLocalizedDescriptionKey: "Timed out waiting for E2E serialization lock."]
                 )
             }
-        } else {
-            try DispatchQueue.main.sync(execute: block)
+            Thread.sleep(forTimeInterval: 0.05)
         }
+        defer { serializationLock.unlock() }
+        return try body()
+    }
+
+    /// TEST_HOST deadlocks on `DispatchQueue.main.sync`; XCTWaiter pumps the run loop safely.
+    private func performOnMainAndWait(_ block: @escaping () throws -> Void) throws {
+        var thrown: Error?
+        let expectation = XCTestExpectation(description: "Ponten E2E main-thread UI work")
+
+        DispatchQueue.main.async {
+            do {
+                try block()
+            } catch {
+                thrown = error
+            }
+            expectation.fulfill()
+        }
+
+        guard XCTWaiter.wait(for: [expectation], timeout: 10) == .completed else {
+            throw NSError(
+                domain: "PontenE2E",
+                code: 11,
+                userInfo: [NSLocalizedDescriptionKey: "Timed out waiting for main-thread UI work."]
+            )
+        }
+
+        if let thrown { throw thrown }
     }
 }
 
