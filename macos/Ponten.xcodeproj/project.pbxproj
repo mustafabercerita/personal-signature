@@ -46,6 +46,7 @@
 		DDCAFC6F19059A9BEDA211D3 /* DrawingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C80F754AF0AA1DECA02DF29D /* DrawingView.swift */; };
 		E227748BFD17A7A85F0BB4CC /* DrawingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C80F754AF0AA1DECA02DF29D /* DrawingView.swift */; };
 		E49D5E26ADC30A1F4FC34350 /* ImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D71898F773ACC800CD5B077 /* ImageProcessor.swift */; };
+		FBAD4D2511EBCBFD5F62F8A7 /* E2EMenuPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9F39EFEE38AEA389D531603 /* E2EMenuPanelView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,6 +73,7 @@
 		2C7628AF5738F410268B6B01 /* ImageEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ImageEditorView.swift; sourceTree = "<group>"; };
 		39AA7F404CE26C6EFA1DED02 /* FooterView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FooterView.swift; sourceTree = "<group>"; };
 		43484E7F379C374B0B69DF15 /* EmptyStateView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
+		B9F39EFEE38AEA389D531603 /* E2EMenuPanelView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = E2EMenuPanelView.swift; sourceTree = "<group>"; };
 		C4636EB3E58AA004A68B3DE2 /* GlobalShortcutManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GlobalShortcutManager.swift; sourceTree = "<group>"; };
 		C80F754AF0AA1DECA02DF29D /* DrawingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DrawingView.swift; sourceTree = "<group>"; };
 		D95262DBEF0D230B8D9EEEE7 /* ImageProcessorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ImageProcessorTests.swift; sourceTree = "<group>"; };
@@ -213,6 +215,7 @@
 				F013 /* E2ETestFixture.swift */,
 				F014 /* MenuBarE2ETests.swift */,
 				2411416A70CEA0740C21E207 /* E2EInProcessHost.swift */,
+				B9F39EFEE38AEA389D531603 /* E2EMenuPanelView.swift */,
 			);
 			path = PontenE2ETests;
 			sourceTree = "<group>";
@@ -400,6 +403,7 @@
 				269A0BC2654FAB21D9956828 /* EventMonitor.swift in Sources */,
 				3F0F2EB29D34BBF310950D33 /* GlobalShortcutManager.swift in Sources */,
 				993D8590F2331BA628E196BE /* E2EMode.swift in Sources */,
+				FBAD4D2511EBCBFD5F62F8A7 /* E2EMenuPanelView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
