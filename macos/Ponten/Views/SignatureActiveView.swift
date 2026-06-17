@@ -194,6 +194,7 @@ struct SignatureCardView: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(sig.item.name ?? "Signature")
         .accessibilityLabel(sig.item.name ?? "Signature")
         .contextMenu {
             Button("Edit") {

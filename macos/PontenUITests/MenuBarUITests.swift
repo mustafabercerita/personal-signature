@@ -33,7 +33,7 @@ final class MenuBarUITests: XCTestCase {
 
         let window = app.windows["Ponten Menu"]
         XCTAssertTrue(window.waitForExistence(timeout: 15))
-        XCTAssertTrue(window.staticTexts["E2E Signature"].waitForExistence(timeout: 5))
+        XCTAssertTrue(window.buttons["E2E Signature"].waitForExistence(timeout: 5))
     }
 
     func testSignButtonShowsCopiedStatus() throws {
@@ -43,7 +43,7 @@ final class MenuBarUITests: XCTestCase {
 
         let window = app.windows["Ponten Menu"]
         XCTAssertTrue(window.waitForExistence(timeout: 15))
-        window.staticTexts["Test Signature"].click()
+        window.buttons["Test Signature"].click()
 
         let signButton = window.buttons["Copy signature to clipboard"]
         XCTAssertTrue(signButton.waitForExistence(timeout: 5))
@@ -74,7 +74,7 @@ final class MenuBarUITests: XCTestCase {
         try launchApp(dataDirectory: dataDirectory)
         let restarted = app.windows["Ponten Menu"]
         XCTAssertTrue(restarted.waitForExistence(timeout: 15))
-        XCTAssertTrue(restarted.staticTexts["Test Signature"].waitForExistence(timeout: 5))
+        XCTAssertTrue(restarted.buttons["Test Signature"].waitForExistence(timeout: 5))
         try assertAutoPastePersisted(dataDirectory: dataDirectory)
 
         let restartedAutoPaste = restarted.checkBoxes["Auto-paste after copying"]
