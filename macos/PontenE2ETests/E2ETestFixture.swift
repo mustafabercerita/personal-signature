@@ -159,14 +159,11 @@ final class E2ETestFixture {
         setenv("PONTEN_DATA_DIR", dataDirectory, 1)
         setenv("PONTEN_E2E_IN_PROCESS", "1", 1)
 
-        let semaphore = DispatchSemaphore(value: 0)
-        DispatchQueue.main.async {
+        try runOnMainSync {
             Self.ensureTestApplication()
             self.inProcessHost = E2EInProcessHost(dataDirectory: dataDirectory)
             self.appPID = ProcessInfo.processInfo.processIdentifier
-            semaphore.signal()
         }
-        semaphore.wait()
 
         let deadline = Date().addingTimeInterval(10)
         while Date() < deadline {
@@ -235,13 +232,10 @@ final class E2ETestFixture {
 
     private func terminateApp() {
         if usesInProcess {
-            let semaphore = DispatchSemaphore(value: 0)
-            DispatchQueue.main.async {
+            runOnMainSync {
                 self.inProcessHost?.close()
                 self.inProcessHost = nil
-                semaphore.signal()
             }
-            semaphore.wait()
         } else if appPID != 0,
                   let running = NSRunningApplication(processIdentifier: appPID),
                   !running.isTerminated {
@@ -503,6 +497,23 @@ final class E2ETestFixture {
 
     private func roleAttribute(_ element: AXUIElement) -> String? {
         stringAttribute(element, attribute: kAXRoleAttribute)
+    }
+
+    /// XCTest runs on the main thread; `DispatchQueue.main.async` + semaphore deadlocks there.
+    private func runOnMainSync(_ block: () throws -> Void) rethrows {
+        if Thread.isMainThread {
+            try block()
+        } else {
+            try DispatchQueue.main.sync(execute: block)
+        }
+    }
+
+    private func runOnMainSync(_ block: () -> Void) {
+        if Thread.isMainThread {
+            block()
+        } else {
+            DispatchQueue.main.sync(execute: block)
+        }
     }
 }
 

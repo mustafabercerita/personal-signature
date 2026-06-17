@@ -3,7 +3,7 @@ import SwiftUI
 @testable import Ponten
 
 /// Hosts `MenuBarView` in-process for CI where cross-process Accessibility is unavailable.
-@MainActor
+/// Must be created on the main thread.
 final class E2EInProcessHost {
     let dataDirectory: String
     let manager: SignatureManager

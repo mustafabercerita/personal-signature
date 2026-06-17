@@ -62,7 +62,7 @@ final class MenuBarE2ETests: XCTestCase {
         let signButton = try fixture.requireElement(
             in: window,
             role: kAXButtonRole as String,
-            title: "Sign"
+            title: "Copy signature to clipboard"
         )
         try fixture.press(signButton)
 
