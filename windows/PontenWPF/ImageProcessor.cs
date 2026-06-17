@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace PontenWPF
 {
-    public class SignatureManager
+    public class ImageProcessor
     {
         public bool ValidateWhiteBackground(Bitmap original)
         {

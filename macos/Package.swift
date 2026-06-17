@@ -16,6 +16,11 @@ let package = Package(
                 .process("Resources/MenuBarIconTemplate.png"),
                 .process("Resources/OriginalLogo.png")
             ]
+        ),
+        .testTarget(
+            name: "PontenTests",
+            dependencies: ["Ponten"],
+            path: "PontenTests"
         )
     ]
 )

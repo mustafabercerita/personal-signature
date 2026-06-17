@@ -23,6 +23,7 @@
 		A007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F008 /* Assets.xcassets */; };
 		B001 /* SignatureManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F010 /* SignatureManagerTests.swift */; };
 		C1D6B0461FDDF1E5F9E1EDB1 /* ImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D71898F773ACC800CD5B077 /* ImageProcessor.swift */; };
+		C5E489EB5810162538BA0D6C /* SignatureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF4B16AFA79F617EF93C299C /* SignatureStore.swift */; };
 		D5EDA8B94534507A56EAE3CF /* SignatureActiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD90A77DDFA4B3C1D9AD3B0C /* SignatureActiveView.swift */; };
 		DDCAFC6F19059A9BEDA211D3 /* DrawingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C80F754AF0AA1DECA02DF29D /* DrawingView.swift */; };
 /* End PBXBuildFile section */
@@ -36,6 +37,7 @@
 		C4636EB3E58AA004A68B3DE2 /* GlobalShortcutManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GlobalShortcutManager.swift; sourceTree = "<group>"; };
 		C80F754AF0AA1DECA02DF29D /* DrawingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DrawingView.swift; sourceTree = "<group>"; };
 		D95262DBEF0D230B8D9EEEE7 /* ImageProcessorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ImageProcessorTests.swift; sourceTree = "<group>"; };
+		DF4B16AFA79F617EF93C299C /* SignatureStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SignatureStore.swift; sourceTree = "<group>"; };
 		F000 /* Ponten.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ponten.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F001 /* PontenApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PontenApp.swift; sourceTree = "<group>"; };
 		F002 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -106,6 +108,7 @@
 			children = (
 				F003 /* SignatureManager.swift */,
 				0D71898F773ACC800CD5B077 /* ImageProcessor.swift */,
+				DF4B16AFA79F617EF93C299C /* SignatureStore.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -268,6 +271,7 @@
 				171BB0EA90A4FC55C5FD3537 /* ImageEditorView.swift in Sources */,
 				C1D6B0461FDDF1E5F9E1EDB1 /* ImageProcessor.swift in Sources */,
 				1120A2BBD5F5CDEF342B0263 /* GlobalShortcutManager.swift in Sources */,
+				C5E489EB5810162538BA0D6C /* SignatureStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

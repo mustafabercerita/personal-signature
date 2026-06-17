@@ -10,7 +10,7 @@ namespace PontenWPF
 {
     public partial class ImageEditorWindow : Window
     {
-        private SignatureManager _signatureManager = new SignatureManager();
+        private ImageProcessor _imageProcessor = new ImageProcessor();
         private CancellationTokenSource? _debounceCts;
         private Bitmap? _originalImage;
 
@@ -123,14 +123,14 @@ namespace PontenWPF
                     {
                         if (removeBg)
                         {
-                            var stripped = _signatureManager.StripWhiteBackground(current);
+                            var stripped = _imageProcessor.StripWhiteBackground(current);
                             if (current != processingBmp) current.Dispose();
                             current = stripped;
                         }
 
                         if (thickness > 0)
                         {
-                            var dilated = _signatureManager.Dilation(current, thickness);
+                            var dilated = _imageProcessor.Dilation(current, thickness);
                             if (current != processingBmp) current.Dispose();
                             current = dilated;
                         }
