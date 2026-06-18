@@ -24,7 +24,7 @@ final class MenuBarToastPresenter {
 
         hidePanel()
 
-        let toastView = NSHostingView(rootView: ToastView(message: message))
+        let toastView = NSHostingView(rootView: MenuBarToastView(message: message))
         toastView.frame.size = toastView.fittingSize
 
         let padding: CGFloat = 16
@@ -90,5 +90,22 @@ final class MenuBarToastPresenter {
             button.toolTip = restoredToolTip ?? "Ponten"
         }
         restoredToolTip = nil
+    }
+}
+
+private struct MenuBarToastView: View {
+    let message: String
+
+    var body: some View {
+        Text(message)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundColor(.primary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color(NSColor.windowBackgroundColor))
+                    .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+            )
     }
 }
