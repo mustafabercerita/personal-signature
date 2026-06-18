@@ -33,7 +33,7 @@ final class MenuBarUITests: XCTestCase {
 
         let window = app.windows["Ponten Menu"]
         XCTAssertTrue(window.waitForExistence(timeout: 15))
-        XCTAssertTrue(window.buttons["E2E Signature"].waitForExistence(timeout: 5))
+        XCTAssertTrue(signatureButton(named: "E2E Signature", in: window).waitForExistence(timeout: 5))
     }
 
     func testSignButtonShowsCopiedStatus() throws {
@@ -43,7 +43,7 @@ final class MenuBarUITests: XCTestCase {
 
         let window = app.windows["Ponten Menu"]
         XCTAssertTrue(window.waitForExistence(timeout: 15))
-        window.buttons["Test Signature"].click()
+        signatureButton(named: "Test Signature", in: window).click()
 
         let signButton = window.buttons["Copy signature to clipboard"]
         XCTAssertTrue(signButton.waitForExistence(timeout: 5))
@@ -74,7 +74,7 @@ final class MenuBarUITests: XCTestCase {
         try launchApp(dataDirectory: dataDirectory)
         let restarted = app.windows["Ponten Menu"]
         XCTAssertTrue(restarted.waitForExistence(timeout: 15))
-        XCTAssertTrue(restarted.buttons["Test Signature"].waitForExistence(timeout: 5))
+        XCTAssertTrue(signatureButton(named: "Test Signature", in: restarted).waitForExistence(timeout: 5))
         try assertAutoPastePersisted(dataDirectory: dataDirectory)
 
         let restartedAutoPaste = restarted.checkBoxes["Auto-paste after copying"]
@@ -95,6 +95,11 @@ final class MenuBarUITests: XCTestCase {
     }
 
     // MARK: - Helpers
+
+    /// Signature cards use UUID `accessibilityIdentifier`; query by accessibility label instead.
+    private func signatureButton(named name: String, in window: XCUIElement) -> XCUIElement {
+        window.buttons.matching(NSPredicate(format: "label == %@", name)).firstMatch
+    }
 
     private func isCheckboxChecked(_ checkbox: XCUIElement) -> Bool {
         if let stringValue = checkbox.value as? String {
