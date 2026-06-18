@@ -379,4 +379,21 @@ final class SignatureManagerTests: XCTestCase {
         XCTAssertTrue(json.contains("\"removeBackground\":false") || json.contains("\"removeBackground\": false"))
         XCTAssertTrue(json.contains("\"launchAtLogin\""))
     }
+
+    @MainActor
+    func testGlobalShortcutAndShowWhiteCanvasRoundTripInIndexJson() throws {
+        manager.globalShortcut = .ctrlCmdS
+        manager.showWhiteCanvas = false
+
+        let url = try makePNGFile()
+        try manager.saveSignature(from: url)
+
+        let reloaded = SignatureManager(store: SignatureStore(storageDirectory: testDirectory))
+        XCTAssertEqual(reloaded.globalShortcut, .ctrlCmdS)
+        XCTAssertFalse(reloaded.showWhiteCanvas)
+
+        let settings = try XCTUnwrap(SignatureStore(storageDirectory: testDirectory).loadSettings())
+        XCTAssertEqual(settings.globalShortcut, ShortcutChoice.ctrlCmdS.rawValue)
+        XCTAssertFalse(settings.showWhiteCanvas)
+    }
 }

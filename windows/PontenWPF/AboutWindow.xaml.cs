@@ -7,12 +7,13 @@ namespace PontenWPF
 {
     public partial class AboutWindow : Window
     {
-        public AboutWindow()
+        public AboutWindow(string shortcutDescription)
         {
             InitializeComponent();
 
             var version = Assembly.GetExecutingAssembly().GetName().Version;
             VersionText.Text = $"Version {version?.Major}.{version?.Minor}.{version?.Build ?? 0}";
+            ShortcutText.Text = $"Global shortcut: {shortcutDescription}";
             GitHubLink.NavigateUri = new System.Uri("https://github.com/mustafabercerita/Ponten");
         }
 

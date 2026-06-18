@@ -79,6 +79,8 @@ final class SignatureManager: ObservableObject {
     }() {
         didSet {
             SignatureManager.settingsDefaults.set(showWhiteCanvas, forKey: "ShowWhiteCanvas")
+            guard !isLoadingSettings else { return }
+            saveIndex()
         }
     }
 
@@ -111,6 +113,8 @@ final class SignatureManager: ObservableObject {
         didSet {
             SignatureManager.settingsDefaults.set(globalShortcut.rawValue, forKey: "GlobalShortcut")
             GlobalShortcutManager.shared.updateShortcut(globalShortcut)
+            guard !isLoadingSettings else { return }
+            saveIndex()
         }
     }
 
@@ -151,7 +155,9 @@ final class SignatureManager: ObservableObject {
         UserSettings(
             autoPaste: autoPaste,
             launchAtLogin: launchAtLogin,
-            removeBackground: removeBackground
+            removeBackground: removeBackground,
+            globalShortcut: globalShortcut.rawValue,
+            showWhiteCanvas: showWhiteCanvas
         )
     }
 
@@ -179,6 +185,15 @@ final class SignatureManager: ObservableObject {
         autoPaste = settings.autoPaste
         SignatureManager.settingsDefaults.set(autoPaste, forKey: "AutoPasteEnabled")
         removeBackground = settings.removeBackground
+
+        if let shortcut = ShortcutChoice(rawValue: settings.globalShortcut) {
+            globalShortcut = shortcut
+            SignatureManager.settingsDefaults.set(shortcut.rawValue, forKey: "GlobalShortcut")
+            GlobalShortcutManager.shared.updateShortcut(shortcut)
+        }
+
+        showWhiteCanvas = settings.showWhiteCanvas
+        SignatureManager.settingsDefaults.set(showWhiteCanvas, forKey: "ShowWhiteCanvas")
 
         if E2EMode.isEnabled {
             launchAtLogin = settings.launchAtLogin

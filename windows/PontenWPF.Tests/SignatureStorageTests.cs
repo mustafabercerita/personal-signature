@@ -293,6 +293,7 @@ namespace PontenWPF.Tests
         [Theory]
         [InlineData("valid-guid.png", false)]
         [InlineData("550e8400-e29b-41d4-a716-446655440000.png", true)]
+        [InlineData("signature.png", true)]
         [InlineData("../escape.png", false)]
         [InlineData("subdir/file.png", false)]
         [InlineData("test.png", false)]
@@ -343,6 +344,69 @@ namespace PontenWPF.Tests
 
             Assert.False(File.Exists(Path.Combine(_testDirectory, "index.json.tmp")));
             Assert.False(File.Exists(Path.Combine(_testDirectory, "orphan.tmp")));
+        }
+
+        [Fact]
+        public void Load_MigratesLegacySignaturePngFromIndex()
+        {
+            var id = Guid.NewGuid();
+            var wrapper = new IndexWrapper
+            {
+                Items = new List<SignatureItem>
+                {
+                    new SignatureItem { Id = id, Filename = "signature.png", Name = "Legacy" }
+                },
+                ActiveID = id
+            };
+            File.WriteAllText(_indexPath, JsonSerializer.Serialize(wrapper));
+            File.WriteAllText(Path.Combine(_testDirectory, "signature.png"), "dummy content");
+
+            var storage = new SignatureStorage(_testDirectory);
+
+            Assert.Single(storage.Signatures);
+            Assert.Equal(id, storage.Signatures[0].Id);
+            Assert.Equal($"{id}.png", storage.Signatures[0].Filename);
+            Assert.False(File.Exists(Path.Combine(_testDirectory, "signature.png")));
+            Assert.True(File.Exists(Path.Combine(_testDirectory, $"{id}.png")));
+        }
+
+        [Fact]
+        public void Load_MigratesLegacySignaturePngWithoutIndex()
+        {
+            File.WriteAllText(Path.Combine(_testDirectory, "signature.png"), "dummy content");
+
+            var storage = new SignatureStorage(_testDirectory);
+
+            Assert.Single(storage.Signatures);
+            Assert.Equal($"{storage.Signatures[0].Id}.png", storage.Signatures[0].Filename);
+            Assert.True(File.Exists(_indexPath));
+            Assert.False(File.Exists(Path.Combine(_testDirectory, "signature.png")));
+        }
+
+        [Fact]
+        public void SaveIndex_FailureInvokesIndexSaveFailed()
+        {
+            var storage = new SignatureStorage(_testDirectory);
+            string? capturedMessage = null;
+            storage.IndexSaveFailed += message => capturedMessage = message;
+
+            Directory.CreateDirectory(_indexPath);
+            bool saved = storage.SaveIndex();
+
+            Assert.False(saved);
+            Assert.NotNull(capturedMessage);
+            Assert.Contains("Failed to save index.json", capturedMessage, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void GlobalShortcut_RoundTripInIndexJson()
+        {
+            var storage = new SignatureStorage(_testDirectory);
+            storage.Settings.GlobalShortcut = (int)ShortcutChoice.AltShiftS;
+            storage.SaveIndex();
+
+            var reloaded = new SignatureStorage(_testDirectory);
+            Assert.Equal((int)ShortcutChoice.AltShiftS, reloaded.Settings.GlobalShortcut);
         }
     }
 }

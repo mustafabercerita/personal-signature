@@ -66,6 +66,7 @@ namespace PontenWPF
             };
 
             SignaturesListBox.ItemsSource = DisplayItems;
+            _storage.IndexSaveFailed += message => Dispatcher.InvokeAsync(() => ShowStatus(message));
 
             if (E2EMode.IsEnabled)
             {
@@ -166,6 +167,13 @@ namespace PontenWPF
 
             var savedChoice = (ShortcutChoice)Math.Clamp(_storage.Settings.GlobalShortcut, 0, 2);
             GlobalShortcutCombo.SelectedValue = savedChoice;
+            UpdateShortcutLabels(savedChoice);
+        }
+
+        private void UpdateShortcutLabels(ShortcutChoice choice)
+        {
+            string description = choice.GetDescription();
+            SignShortcutLabel.Text = description;
         }
 
         private void GlobalShortcutCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -181,7 +189,12 @@ namespace PontenWPF
             }
 
             _storage.Settings.GlobalShortcut = (int)choice;
-            _storage.SaveIndex();
+            if (!_storage.SaveIndex())
+            {
+                return;
+            }
+
+            UpdateShortcutLabels(choice);
             RegisterGlobalShortcutFromSettings();
         }
 
@@ -585,6 +598,11 @@ namespace PontenWPF
             _storage.SaveIndex();
         }
 
+        private ShortcutChoice CurrentShortcutChoice()
+        {
+            return (ShortcutChoice)Math.Clamp(_storage.Settings.GlobalShortcut, 0, 2);
+        }
+
         private void Grid_DragOver(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
@@ -759,7 +777,7 @@ namespace PontenWPF
 
         private void About_Click(object sender, RoutedEventArgs e)
         {
-            var about = new AboutWindow
+            var about = new AboutWindow(CurrentShortcutChoice().GetDescription())
             {
                 Owner = this
             };

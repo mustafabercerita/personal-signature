@@ -21,7 +21,7 @@
             <TextBlock Text="Lightweight cross-platform app — one-click digital signature to clipboard. Built with C# &amp; WPF."
                        Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"/>
 
-            <TextBlock Text="Global shortcut: Ctrl+Alt+S" Foreground="#AAAAAA" FontSize="12" Margin="0,0,0,10"/>
+            <TextBlock x:Name="ShortcutText" Foreground="#AAAAAA" FontSize="12" Margin="0,0,0,10"/>
 
             <TextBlock Margin="0,0,0,10">
                 <Hyperlink x:Name="GitHubLink" Foreground="#6CB4EE" RequestNavigate="GitHubLink_RequestNavigate">

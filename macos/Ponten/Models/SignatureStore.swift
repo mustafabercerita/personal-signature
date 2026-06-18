@@ -11,11 +11,21 @@ struct UserSettings: Codable, Equatable {
     var autoPaste: Bool
     var launchAtLogin: Bool
     var removeBackground: Bool
+    var globalShortcut: Int
+    var showWhiteCanvas: Bool
 
-    init(autoPaste: Bool = true, launchAtLogin: Bool = false, removeBackground: Bool = true) {
+    init(
+        autoPaste: Bool = true,
+        launchAtLogin: Bool = false,
+        removeBackground: Bool = true,
+        globalShortcut: Int = 0,
+        showWhiteCanvas: Bool = true
+    ) {
         self.autoPaste = autoPaste
         self.launchAtLogin = launchAtLogin
         self.removeBackground = removeBackground
+        self.globalShortcut = globalShortcut
+        self.showWhiteCanvas = showWhiteCanvas
     }
 
     init(from decoder: Decoder) throws {
@@ -23,6 +33,8 @@ struct UserSettings: Codable, Equatable {
         autoPaste = try container.decodeIfPresent(Bool.self, forKey: .autoPaste) ?? true
         launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? false
         removeBackground = try container.decodeIfPresent(Bool.self, forKey: .removeBackground) ?? true
+        globalShortcut = try container.decodeIfPresent(Int.self, forKey: .globalShortcut) ?? 0
+        showWhiteCanvas = try container.decodeIfPresent(Bool.self, forKey: .showWhiteCanvas) ?? true
     }
 }
 
@@ -246,6 +258,12 @@ final class SignatureStore {
         }
         if let removeBackground = settingsDict["removeBackground"] as? Bool ?? settingsDict["RemoveBackground"] as? Bool {
             settings.removeBackground = removeBackground
+        }
+        if let globalShortcut = settingsDict["globalShortcut"] as? Int ?? settingsDict["GlobalShortcut"] as? Int {
+            settings.globalShortcut = globalShortcut
+        }
+        if let showWhiteCanvas = settingsDict["showWhiteCanvas"] as? Bool ?? settingsDict["ShowWhiteCanvas"] as? Bool {
+            settings.showWhiteCanvas = showWhiteCanvas
         }
         return settings
     }

@@ -84,13 +84,14 @@
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
-                            <Grid>
-                                <TextBlock Text="Sign" HorizontalAlignment="Center" FontWeight="SemiBold"/>
-                                <TextBlock Text="Ctrl+Alt+S" HorizontalAlignment="Right" Foreground="#B3FFFFFF" FontSize="11" VerticalAlignment="Center"/>
-                            </Grid>
+                            <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
                 </Button.Template>
+                <Grid>
+                    <TextBlock Text="Sign" HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="SignShortcutLabel" Text="Ctrl+Alt+S" HorizontalAlignment="Right" Foreground="#B3FFFFFF" FontSize="11" VerticalAlignment="Center"/>
+                </Grid>
             </Button>
             
             <!-- Toolbar -->

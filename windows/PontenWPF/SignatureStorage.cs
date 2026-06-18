@@ -49,6 +49,8 @@ namespace PontenWPF
         public Guid? ActiveSignatureID { get; set; }
         public UserSettings Settings { get; set; } = new();
 
+        public event Action<string>? IndexSaveFailed;
+
         public SignatureStorage(string? customStorageDirectory = null)
         {
             if (!string.IsNullOrEmpty(customStorageDirectory))
@@ -65,6 +67,11 @@ namespace PontenWPF
             Directory.CreateDirectory(_storageDirectory);
             CleanTempFiles();
             Load();
+        }
+
+        public static bool IsLegacySignatureFilename(string filename)
+        {
+            return string.Equals(filename, "signature.png", StringComparison.OrdinalIgnoreCase);
         }
 
         public static bool IsValidSignatureFilename(string filename)
@@ -87,6 +94,11 @@ namespace PontenWPF
             if (filename.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
             {
                 return false;
+            }
+
+            if (IsLegacySignatureFilename(filename))
+            {
+                return true;
             }
 
             return Regex.IsMatch(filename, @"^[a-fA-F0-9\-]+\.png$");
@@ -128,6 +140,18 @@ namespace PontenWPF
         {
             bool loadedFromIndex = false;
 
+            if (!File.Exists(_indexPath) && File.Exists(Path.Combine(_storageDirectory, "signature.png")))
+            {
+                var legacyItem = new SignatureItem
+                {
+                    Id = Guid.NewGuid(),
+                    Filename = "signature.png"
+                };
+                Signatures = new List<SignatureItem> { legacyItem };
+                ActiveSignatureID = legacyItem.Id;
+                loadedFromIndex = true;
+            }
+
             if (File.Exists(_indexPath))
             {
                 try
@@ -165,11 +189,18 @@ namespace PontenWPF
             // Clean up invalid filenames and missing files from the index
             for (int i = Signatures.Count - 1; i >= 0; i--)
             {
-                string filename = Signatures[i].Filename;
+                var item = Signatures[i];
+                string filename = item.Filename;
                 if (!IsValidSignatureFilename(filename))
                 {
                     App.Log($"Removing signature with invalid filename: {filename}");
                     Signatures.RemoveAt(i);
+                    changed = true;
+                    continue;
+                }
+
+                if (TryMigrateLegacySignature(item))
+                {
                     changed = true;
                     continue;
                 }
@@ -211,10 +242,28 @@ namespace PontenWPF
                         continue;
                     }
 
-                    string stem = filename[..^4];
-                    if (!Guid.TryParse(stem, out Guid id))
+                    Guid id;
+                    if (IsLegacySignatureFilename(filename))
                     {
-                        continue;
+                        id = Guid.NewGuid();
+                        filename = $"{id}.png";
+                        try
+                        {
+                            File.Move(path, Path.Combine(_storageDirectory, filename));
+                        }
+                        catch (Exception ex)
+                        {
+                            App.Log($"Failed to migrate legacy signature.png: {ex.Message}");
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        string stem = filename[..^4];
+                        if (!Guid.TryParse(stem, out id))
+                        {
+                            continue;
+                        }
                     }
 
                     loaded.Add(new SignatureItem { Id = id, Filename = filename });
@@ -285,7 +334,46 @@ namespace PontenWPF
             }
         }
 
-        public void SaveIndex()
+        private bool TryMigrateLegacySignature(SignatureItem item)
+        {
+            if (!IsLegacySignatureFilename(item.Filename))
+            {
+                return false;
+            }
+
+            string legacyPath = Path.Combine(_storageDirectory, "signature.png");
+            if (!File.Exists(legacyPath))
+            {
+                return false;
+            }
+
+            Guid id = item.Id != Guid.Empty ? item.Id : Guid.NewGuid();
+            string newFilename = $"{id}.png";
+            string newPath = Path.Combine(_storageDirectory, newFilename);
+
+            try
+            {
+                if (!File.Exists(newPath))
+                {
+                    File.Move(legacyPath, newPath);
+                }
+                else if (File.Exists(legacyPath))
+                {
+                    File.Delete(legacyPath);
+                }
+
+                item.Id = id;
+                item.Filename = newFilename;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                App.Log($"Failed to migrate legacy signature.png: {ex.Message}");
+                return false;
+            }
+        }
+
+        public bool SaveIndex()
         {
             var wrapper = new IndexWrapper
             {
@@ -299,10 +387,14 @@ namespace PontenWPF
                 string tempPath = _indexPath + ".tmp";
                 File.WriteAllText(tempPath, json);
                 File.Move(tempPath, _indexPath, overwrite: true);
+                return true;
             }
             catch (Exception ex)
             {
-                App.Log(StorageError.UserFacingMessage(ex, "Failed to save index.json"));
+                string message = StorageError.UserFacingMessage(ex, "Failed to save index.json");
+                App.Log(message);
+                IndexSaveFailed?.Invoke(message);
+                return false;
             }
         }
 
