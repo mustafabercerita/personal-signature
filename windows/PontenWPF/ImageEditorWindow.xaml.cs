@@ -10,6 +10,7 @@ namespace PontenWPF
 {
     public partial class ImageEditorWindow : Window
     {
+        private readonly object _imageLock = new();
         private ImageProcessor _imageProcessor = new ImageProcessor();
         private CancellationTokenSource? _debounceCts;
         private Bitmap? _originalImage;
@@ -49,10 +50,17 @@ namespace PontenWPF
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_currentProcessedBitmap != null)
+            if (_currentProcessedBitmap == null)
             {
-                OnSave?.Invoke(new Bitmap(_currentProcessedBitmap));
+                MessageBox.Show(
+                    "Preview is not ready yet. Please wait a moment and try again.",
+                    "Image Editor",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
             }
+
+            OnSave?.Invoke(new Bitmap(_currentProcessedBitmap));
             this.Close();
         }
 
@@ -123,7 +131,7 @@ namespace PontenWPF
             CancellationToken token)
         {
             Bitmap processingBmp;
-            lock (this)
+            lock (_imageLock)
             {
                 if (_originalImage == null) return;
                 processingBmp = new Bitmap(_originalImage);
@@ -200,6 +208,7 @@ namespace PontenWPF
                     }
                     _currentProcessedBitmap = resultBmp;
                     PreviewImage.Source = imageSource;
+                    SaveButton.IsEnabled = true;
                 });
             }
             catch (Exception ex)
@@ -235,7 +244,7 @@ namespace PontenWPF
         {
             _debounceCts?.Cancel();
             _debounceCts?.Dispose();
-            lock (this)
+            lock (_imageLock)
             {
                 _originalImage?.Dispose();
                 _originalImage = null;

@@ -7,6 +7,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.Win32;
@@ -51,6 +53,17 @@ namespace PontenWPF
             this.SourceInitialized += MenuBarView_SourceInitialized;
             this.Closing += (_, _) => _isClosing = true;
             this.Closed += MenuBarView_Closed;
+
+            _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
+            _statusTimer.Tick += (_, _) =>
+            {
+                StatusText.Text = "";
+                if (!E2EMode.IsEnabled)
+                {
+                    StatusText.Visibility = Visibility.Collapsed;
+                }
+                _statusTimer?.Stop();
+            };
 
             SignaturesListBox.ItemsSource = DisplayItems;
 
@@ -176,7 +189,30 @@ namespace PontenWPF
                 return;
             }
 
+            if (!ShouldHideOnDeactivate())
+            {
+                return;
+            }
+
             this.Hide();
+        }
+
+        private bool ShouldHideOnDeactivate()
+        {
+            if (SignaturesListBox.ContextMenu?.IsOpen == true)
+            {
+                return false;
+            }
+
+            foreach (Window window in Application.Current.Windows)
+            {
+                if (window != this && window.IsVisible)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public void ShowAtBottomRight()
@@ -217,17 +253,7 @@ namespace PontenWPF
             System.Windows.Automation.AutomationProperties.SetName(StatusText, message);
 
             _statusTimer?.Stop();
-            _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
-            _statusTimer.Tick += (_, _) =>
-            {
-                StatusText.Text = "";
-                if (!E2EMode.IsEnabled)
-                {
-                    StatusText.Visibility = Visibility.Collapsed;
-                }
-                _statusTimer?.Stop();
-            };
-            _statusTimer.Start();
+            _statusTimer?.Start();
         }
 
         private SignatureDisplayItem? GetActiveDisplayItem()
@@ -274,7 +300,7 @@ namespace PontenWPF
                 if (autoPaste && !E2EMode.IsEnabled)
                 {
                     await Task.Delay(150);
-                    await Dispatcher.InvokeAsync(() => _manager.AutoPaste());
+                    await _manager.AutoPasteAsync();
                 }
             }
             catch (Exception ex)
@@ -285,6 +311,23 @@ namespace PontenWPF
 
         private void SignaturesListBox_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
+            var position = Mouse.GetPosition(SignaturesListBox);
+            var hit = SignaturesListBox.InputHitTest(position) as DependencyObject;
+            while (hit != null && hit is not ListBoxItem)
+            {
+                hit = VisualTreeHelper.GetParent(hit);
+            }
+
+            if (hit is ListBoxItem listBoxItem)
+            {
+                listBoxItem.IsSelected = true;
+            }
+            else
+            {
+                e.Handled = true;
+                return;
+            }
+
             if (SignaturesListBox.SelectedItem is not SignatureDisplayItem)
             {
                 e.Handled = true;
@@ -587,7 +630,7 @@ namespace PontenWPF
 
         private void RemoveBgToggle_Changed(object sender, RoutedEventArgs e)
         {
-            if (!IsLoaded)
+            if (!IsLoaded || _isClosing || _suppressSettingsSave)
             {
                 return;
             }
@@ -661,7 +704,36 @@ namespace PontenWPF
             drawWin.OnSave += (bitmap) =>
             {
                 saved = true;
-                SaveSignatureBitmap(bitmap);
+                try
+                {
+                    using (bitmap)
+                    using (var normalized = _manager.Ensure32bpp(bitmap))
+                    {
+                        bool removeBg = _storage.Settings.RemoveBackground;
+                        OpenImageEditor(normalized, removeBg, processedBmp =>
+                        {
+                            var id = Guid.NewGuid();
+                            string filename = $"{id}.png";
+                            string path = _storage.GetSignatureFilePath(filename);
+
+                            using (var ms = new MemoryStream())
+                            {
+                                processedBmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                                ImageProcessor.WritePngAtomic(path, ms.ToArray());
+                            }
+                            processedBmp.Dispose();
+
+                            _storage.AddSignature(new SignatureItem { Id = id, Filename = filename });
+                            LoadSignatures();
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    App.Log($"Failed to open editor for drawn signature: {ex.Message}");
+                    MessageBox.Show($"Failed to process drawn signature: {ex.Message}", "Draw Signature", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Dispatcher.InvokeAsync(ShowAtBottomRight);
+                }
             };
             drawWin.Closed += (_, _) =>
             {
@@ -671,23 +743,6 @@ namespace PontenWPF
                 }
             };
             drawWin.Show();
-        }
-
-        private void SaveSignatureBitmap(Bitmap bitmap)
-        {
-            var id = Guid.NewGuid();
-            string filename = $"{id}.png";
-            string path = _storage.GetSignatureFilePath(filename);
-
-            using (var ms = new MemoryStream())
-            {
-                bitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-                ImageProcessor.WritePngAtomic(path, ms.ToArray());
-            }
-            bitmap.Dispose();
-
-            _storage.AddSignature(new SignatureItem { Id = id, Filename = filename });
-            LoadSignatures();
         }
 
         private void AddSignature_Click(object sender, RoutedEventArgs e)

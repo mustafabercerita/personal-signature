@@ -10,6 +10,7 @@ namespace PontenWPF;
 public partial class App : Application
 {
     private TaskbarIcon? notifyIcon;
+    private System.Drawing.Icon? _traySysIcon;
     private static Mutex? _mutex;
     private bool _hasMutex;
     private bool _shownDispatcherError;
@@ -94,16 +95,16 @@ public partial class App : Application
             return;
         }
 
+        bool trayReady = false;
         try 
         {
             Log("Extracting Associated Icon...");
-            System.Drawing.Icon? sysIcon = null;
             
             if (!string.IsNullOrEmpty(exePath))
             {
                 try 
                 {
-                    sysIcon = System.Drawing.Icon.ExtractAssociatedIcon(exePath);
+                    _traySysIcon = System.Drawing.Icon.ExtractAssociatedIcon(exePath);
                 }
                 catch (Exception iconEx)
                 {
@@ -117,9 +118,9 @@ public partial class App : Application
                 Visibility = Visibility.Visible
             };
 
-            if (sysIcon != null)
+            if (_traySysIcon != null)
             {
-                notifyIcon.Icon = sysIcon;
+                notifyIcon.Icon = _traySysIcon;
                 Log("Using extracted sysIcon.");
             }
             else
@@ -161,16 +162,29 @@ public partial class App : Application
             
             Log("Calling ForceCreate(false)...");
             notifyIcon.ForceCreate(false);
+            trayReady = notifyIcon.IsCreated;
             
             Log($"Tray icon instantiated. IsCreated: {notifyIcon.IsCreated}");
         }
         catch (Exception ex)
         {
             LogException("Failed to instantiate Tray Icon", ex);
+            trayReady = false;
         }
         
         MainWindow = new MenuBarView();
         Log("Main Window created");
+
+        if (!trayReady)
+        {
+            Log("Tray icon unavailable; falling back to visible menu window.");
+            MessageBox.Show(
+                "Ponten could not create a system tray icon. The menu window will stay available instead.",
+                "Ponten",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            ShowMainWindow();
+        }
     }
 
     private void NotifyIcon_TrayLeftMouseUp(object sender, RoutedEventArgs e)
@@ -227,7 +241,19 @@ public partial class App : Application
 
     private static bool IsNonFatalException(Exception ex)
     {
-        return ex is OperationCanceledException or System.IO.IOException;
+        if (ex is OperationCanceledException)
+        {
+            return true;
+        }
+
+        if (ex is IOException ioEx)
+        {
+            const int ERROR_SHARING_VIOLATION = unchecked((int)0x80070020);
+            const int ERROR_LOCK_VIOLATION = unchecked((int)0x80070021);
+            return ioEx.HResult == ERROR_SHARING_VIOLATION || ioEx.HResult == ERROR_LOCK_VIOLATION;
+        }
+
+        return false;
     }
 
     private static string SanitizeForLog(string message)
@@ -255,6 +281,7 @@ public partial class App : Application
         {
             Log($"App shutting down with exit code: {e.ApplicationExitCode}");
             notifyIcon?.Dispose();
+            _traySysIcon?.Dispose();
             _mutex?.ReleaseMutex();
         }
         _mutex?.Dispose();

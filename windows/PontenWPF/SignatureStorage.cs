@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace PontenWPF
 {
@@ -16,7 +17,7 @@ namespace PontenWPF
     public class UserSettings
     {
         public bool LaunchAtLogin { get; set; } = false;
-        public bool AutoPaste { get; set; } = false;
+        public bool AutoPaste { get; set; } = true;
         public bool RemoveBackground { get; set; } = true;
     }
 
@@ -29,6 +30,14 @@ namespace PontenWPF
 
     public class SignatureStorage
     {
+        internal static readonly JsonSerializerOptions IndexJsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true,
+            WriteIndented = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+
         private readonly string _storageDirectory;
         private readonly string _indexPath;
         private readonly bool _skipRegistrySync;
@@ -51,12 +60,65 @@ namespace PontenWPF
             }
             _indexPath = Path.Combine(_storageDirectory, "index.json");
             Directory.CreateDirectory(_storageDirectory);
+            CleanTempFiles();
             Load();
+        }
+
+        public static bool IsValidSignatureFilename(string filename)
+        {
+            if (string.IsNullOrWhiteSpace(filename))
+            {
+                return false;
+            }
+
+            if (filename.Contains("..", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (filename.Contains('/') || filename.Contains('\\'))
+            {
+                return false;
+            }
+
+            if (filename.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            {
+                return false;
+            }
+
+            return Regex.IsMatch(filename, @"^[a-fA-F0-9\-]+\.png$");
         }
 
         public string GetSignatureFilePath(string filename)
         {
+            if (!IsValidSignatureFilename(filename))
+            {
+                throw new ArgumentException($"Invalid signature filename: {filename}", nameof(filename));
+            }
+
             return Path.Combine(_storageDirectory, filename);
+        }
+
+        private void CleanTempFiles()
+        {
+            try
+            {
+                foreach (string tmpPath in Directory.GetFiles(_storageDirectory, "*.tmp"))
+                {
+                    try
+                    {
+                        File.Delete(tmpPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        App.Log($"Failed to delete temp file {Path.GetFileName(tmpPath)}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                App.Log($"Failed to clean temp files: {ex.Message}");
+            }
         }
 
         public void Load()
@@ -66,10 +128,10 @@ namespace PontenWPF
                 try
                 {
                     string json = File.ReadAllText(_indexPath);
-                    var wrapper = JsonSerializer.Deserialize<IndexWrapper>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var wrapper = JsonSerializer.Deserialize<IndexWrapper>(json, IndexJsonOptions);
                     if (wrapper != null)
                     {
-                        Signatures = wrapper.Items;
+                        Signatures = wrapper.Items ?? new List<SignatureItem>();
                         ActiveSignatureID = wrapper.ActiveID;
                         if (wrapper.Settings != null) Settings = wrapper.Settings;
                     }
@@ -80,11 +142,20 @@ namespace PontenWPF
                 }
             }
             
-            // Clean up missing files from the index
+            // Clean up invalid filenames and missing files from the index
             bool changed = false;
             for (int i = Signatures.Count - 1; i >= 0; i--)
             {
-                if (!File.Exists(GetSignatureFilePath(Signatures[i].Filename)))
+                string filename = Signatures[i].Filename;
+                if (!IsValidSignatureFilename(filename))
+                {
+                    App.Log($"Removing signature with invalid filename: {filename}");
+                    Signatures.RemoveAt(i);
+                    changed = true;
+                    continue;
+                }
+
+                if (!File.Exists(GetSignatureFilePath(filename)))
                 {
                     Signatures.RemoveAt(i);
                     changed = true;
@@ -141,7 +212,7 @@ namespace PontenWPF
             };
             try
             {
-                string json = JsonSerializer.Serialize(wrapper, new JsonSerializerOptions { WriteIndented = true });
+                string json = JsonSerializer.Serialize(wrapper, IndexJsonOptions);
                 string tempPath = _indexPath + ".tmp";
                 File.WriteAllText(tempPath, json);
                 File.Move(tempPath, _indexPath, overwrite: true);
@@ -207,7 +278,9 @@ namespace PontenWPF
                     string appName = "PontenSignatures";
                     if (launch)
                     {
-                        string exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? "";
+                        string exePath = Environment.ProcessPath
+                            ?? System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName
+                            ?? "";
                         if (!string.IsNullOrEmpty(exePath))
                         {
                             key.SetValue(appName, $"\"{exePath}\"");

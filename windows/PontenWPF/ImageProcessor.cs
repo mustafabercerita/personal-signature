@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace PontenWPF
 {
@@ -340,10 +341,15 @@ namespace PontenWPF
                     }
                 }
             };
-            SendInput(1, new[] { input }, Marshal.SizeOf<INPUT>());
+            uint sent = SendInput(1, new[] { input }, Marshal.SizeOf<INPUT>());
+            if (sent == 0)
+            {
+                int error = Marshal.GetLastWin32Error();
+                App.Log($"SendInput failed for VK=0x{vk:X} keyUp={keyUp}: Win32 error {error}");
+            }
         }
 
-        public void AutoPaste()
+        public async Task AutoPasteAsync()
         {
             // First ensure Alt, Shift, and Win keys are released to avoid triggering unintended shortcuts
             SendKey(VK_MENU, true);
@@ -351,12 +357,12 @@ namespace PontenWPF
             SendKey(VK_LWIN, true);
             SendKey(VK_RWIN, true);
 
-            System.Threading.Thread.Sleep(50);
+            await Task.Delay(50).ConfigureAwait(false);
 
             SendKey(VK_CONTROL, false);
             SendKey(VK_V, false);
 
-            System.Threading.Thread.Sleep(50);
+            await Task.Delay(50).ConfigureAwait(false);
 
             SendKey(VK_V, true);
             SendKey(VK_CONTROL, true);
