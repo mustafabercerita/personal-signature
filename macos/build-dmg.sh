@@ -57,6 +57,12 @@ SOURCE_FILES=(
     "Ponten/App/AppDelegate.swift"
     "Ponten/Models/SignatureManager.swift"
     "Ponten/Models/SignatureStore.swift"
+    "Ponten/Models/ImageProcessor.swift"
+    "Ponten/Utilities/E2EMode.swift"
+    "Ponten/Utilities/StorageError.swift"
+    "Ponten/Utilities/EventMonitor.swift"
+    "Ponten/Utilities/GlobalShortcutManager.swift"
+    "Ponten/Utilities/MenuBarToastPresenter.swift"
     "Ponten/Views/MenuBarView.swift"
     "Ponten/Views/HeaderView.swift"
     "Ponten/Views/SignatureActiveView.swift"
@@ -64,10 +70,7 @@ SOURCE_FILES=(
     "Ponten/Views/FooterView.swift"
     "Ponten/Views/AboutView.swift"
     "Ponten/Views/Components.swift"
-    "Ponten/Utilities/EventMonitor.swift"
-    "Ponten/Utilities/GlobalShortcutManager.swift"
     "Ponten/Views/DrawingView.swift"
-    "Ponten/Models/ImageProcessor.swift"
     "Ponten/Views/ImageEditorView.swift"
 )
 
@@ -126,6 +129,9 @@ compile() {
         -framework SwiftUI \
         -framework ServiceManagement \
         -framework UniformTypeIdentifiers \
+        -framework ApplicationServices \
+        -framework Carbon \
+        -framework Vision \
         -o "$BINARY_PATH" \
         "${abs_sources[@]}"
 

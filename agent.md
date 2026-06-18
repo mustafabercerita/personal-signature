@@ -155,8 +155,8 @@ Bump **all** of these together, then `git tag vX.Y.Z`:
 | `macos/Ponten.xcodeproj/project.pbxproj` | `MARKETING_VERSION` |
 | `windows/PontenWPF/PontenWPF.csproj` | `<Version>`, `<AssemblyVersion>`, `<FileVersion>`, `<InformationalVersion>` |
 | `windows/installer.iss` | `#define MyAppVersion` |
-| `macos/install.sh` | `VERSION=` |
-| `macos/build-dmg.sh` | `VERSION=` |
+| `macos/install.sh` | `VERSION=` and `SOURCE_FILES` |
+| `macos/build-dmg.sh` | `VERSION=` and `SOURCE_FILES` |
 
 ### `index.json` schema differences
 
