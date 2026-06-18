@@ -156,7 +156,13 @@ struct ImageEditorView: View {
         .onChange(of: thicken) { _ in updatePreview() }
         .onChange(of: rotation) { _ in updatePreview() }
         .onChange(of: autoTrim) { _ in updatePreview() }
-        .onChange(of: removeBackground) { _ in updatePreview() }
+        .onAppear {
+            removeBackground = manager.removeBackground
+        }
+        .onChange(of: removeBackground) { newValue in
+            manager.removeBackground = newValue
+            updatePreview()
+        }
         .onDisappear {
             previewUpdateTask?.cancel()
         }

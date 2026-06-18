@@ -84,20 +84,29 @@ namespace PontenWPF
         {
             var helper = new System.Windows.Interop.WindowInteropHelper(this);
             _shortcutManager = new GlobalShortcutManager(helper.Handle);
-
-            uint MOD_ALT = 0x0001;
-            uint MOD_CONTROL = 0x0002;
-            uint VK_S = 0x53;
-            _shortcutManager.RegisterShortcut(9000, MOD_CONTROL | MOD_ALT, VK_S);
-            if (!_shortcutManager.Success)
-            {
-                App.Log("Failed to register global hotkey Ctrl+Alt+S");
-            }
+            RegisterGlobalShortcutFromSettings();
 
             _shortcutManager.HotKeyPressed += () =>
             {
                 Dispatcher.InvokeAsync(async () => await HandleHotKeyAsync());
             };
+        }
+
+        private void RegisterGlobalShortcutFromSettings()
+        {
+            if (_shortcutManager == null)
+            {
+                return;
+            }
+
+            var choice = (ShortcutChoice)Math.Clamp(_storage.Settings.GlobalShortcut, 0, 2);
+            var (modifiers, key) = choice.GetHotKeyRegistration();
+            _shortcutManager.RegisterShortcut(9000, modifiers, key);
+            if (!_shortcutManager.Success)
+            {
+                App.Log($"Failed to register global hotkey {choice.GetDescription()}");
+                ShowStatus($"Could not register {choice.GetDescription()} — another app may be using it.");
+            }
         }
 
         private async Task HandleHotKeyAsync()
@@ -134,11 +143,73 @@ namespace PontenWPF
             LaunchAtLoginCheck.IsChecked = _storage.Settings.LaunchAtLogin;
             AutoPasteCheck.IsChecked = _storage.Settings.AutoPaste;
             RemoveBgToggle.IsChecked = _storage.Settings.RemoveBackground;
+            InitializeGlobalShortcutPicker();
             _suppressSettingsSave = false;
 
             if (E2EMode.IsEnabled)
             {
                 ShowAtBottomRight();
+            }
+            else
+            {
+                _ = CheckForUpdatesSilentlyAsync();
+            }
+        }
+
+        private void InitializeGlobalShortcutPicker()
+        {
+            GlobalShortcutCombo.ItemsSource = Enum.GetValues<ShortcutChoice>()
+                .Select(choice => new { Choice = choice, Label = choice.GetDescription() })
+                .ToList();
+            GlobalShortcutCombo.DisplayMemberPath = "Label";
+            GlobalShortcutCombo.SelectedValuePath = "Choice";
+
+            var savedChoice = (ShortcutChoice)Math.Clamp(_storage.Settings.GlobalShortcut, 0, 2);
+            GlobalShortcutCombo.SelectedValue = savedChoice;
+        }
+
+        private void GlobalShortcutCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!IsLoaded || _isClosing || _suppressSettingsSave)
+            {
+                return;
+            }
+
+            if (GlobalShortcutCombo.SelectedValue is not ShortcutChoice choice)
+            {
+                return;
+            }
+
+            _storage.Settings.GlobalShortcut = (int)choice;
+            _storage.SaveIndex();
+            RegisterGlobalShortcutFromSettings();
+        }
+
+        public async Task CheckForUpdatesSilentlyAsync()
+        {
+            if (E2EMode.IsEnabled)
+            {
+                return;
+            }
+
+            try
+            {
+                var updater = new Updater();
+                var result = await updater.CheckForUpdateAsync();
+
+                if (!string.IsNullOrEmpty(result.ErrorMessage))
+                {
+                    return;
+                }
+
+                if (result.IsNewerAvailable && !string.IsNullOrEmpty(result.LatestVersion))
+                {
+                    ShowStatus($"Update v{result.LatestVersion} available. Use Check for Updates to install.");
+                }
+            }
+            catch (Exception ex)
+            {
+                App.LogException("Silent update check failed", ex);
             }
         }
 
@@ -246,7 +317,7 @@ namespace PontenWPF
             }
         }
 
-        private void ShowStatus(string message)
+        public void ShowStatus(string message)
         {
             StatusText.Text = message;
             StatusText.Visibility = Visibility.Visible;
@@ -284,12 +355,12 @@ namespace PontenWPF
                 if (E2EMode.IsEnabled)
                 {
                     WriteE2ECopyMarker();
-                    ShowStatus("Signature copied ✓");
+                    ShowStatus("Signature copied to clipboard ✓");
                 }
                 else
                 {
                     Clipboard.SetImage(active.ImageSource);
-                    ShowStatus("Signature copied ✓");
+                    ShowStatus("Signature copied to clipboard ✓");
                 }
 
                 if (hideWindow)
@@ -306,6 +377,7 @@ namespace PontenWPF
             catch (Exception ex)
             {
                 App.Log($"Clipboard error: {ex.Message}");
+                ShowStatus("Failed to copy — try again.");
             }
         }
 
@@ -683,6 +755,15 @@ namespace PontenWPF
                 App.LogException("Update check failed", ex);
                 MessageBox.Show("Update check failed. Check your network connection.", "Update", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
+        }
+
+        private void About_Click(object sender, RoutedEventArgs e)
+        {
+            var about = new AboutWindow
+            {
+                Owner = this
+            };
+            about.ShowDialog();
         }
 
         private void Quit_Click(object sender, RoutedEventArgs e)

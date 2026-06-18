@@ -75,7 +75,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
                 guard (200...299).contains(httpResponse.statusCode) else {
                     if !silent {
-                        self?.signatureManager.showToast("Update check failed (HTTP \(httpResponse.statusCode)).")
+                        let message: String
+                        switch httpResponse.statusCode {
+                        case 403:
+                            message = "Update check blocked (rate limit). Try again later."
+                        case 429:
+                            message = "Too many update checks. Try again later."
+                        default:
+                            message = "Update check failed (HTTP \(httpResponse.statusCode))."
+                        }
+                        self?.signatureManager.showToast(message)
                     }
                     return
                 }
@@ -380,6 +389,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func togglePopover(_ sender: Any?) {
         if let event = NSApp.currentEvent, event.type == .rightMouseUp {
             let menu = NSMenu()
+
+            let addItem = NSMenuItem(title: "Add Signature...", action: #selector(addSignatureFromMenu), keyEquivalent: "")
+            addItem.target = self
+            menu.addItem(addItem)
+
+            let drawItem = NSMenuItem(title: "Draw Signature...", action: #selector(drawSignatureFromMenu), keyEquivalent: "")
+            drawItem.target = self
+            menu.addItem(drawItem)
+
+            menu.addItem(.separator())
+
             menu.addItem(NSMenuItem(title: "Quit Ponten", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
             if let button = statusItem.button {
                 menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height), in: button)
@@ -410,5 +430,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !signatureManager.isModalPresented else { return }
         popover.performClose(nil)
         eventMonitor?.stop()
+    }
+
+    @objc private func addSignatureFromMenu() {
+        openPopover()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            self?.signatureManager.openFilePicker()
+        }
+    }
+
+    @objc private func drawSignatureFromMenu() {
+        openPopover()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            self?.signatureManager.isDrawingSheetOpen = true
+        }
     }
 }

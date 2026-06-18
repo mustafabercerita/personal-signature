@@ -313,7 +313,10 @@ public sealed class E2ETestFixture : IDisposable
         Assert.True(File.Exists(indexPath), "index.json was not created.");
 
         var json = File.ReadAllText(indexPath);
-        Assert.Contains("\"AutoPaste\": true", json, StringComparison.Ordinal);
+        Assert.True(
+            json.Contains("\"autoPaste\": true", StringComparison.Ordinal)
+            || json.Contains("\"AutoPaste\": true", StringComparison.Ordinal),
+            "Expected autoPaste=true in index.json settings.");
     }
 
     public void WaitForAutoPasteEnabled(string dataDirectory, TimeSpan? timeout = null)
@@ -327,7 +330,8 @@ public sealed class E2ETestFixture : IDisposable
             if (File.Exists(indexPath))
             {
                 var json = File.ReadAllText(indexPath);
-                if (json.Contains("\"AutoPaste\": true", StringComparison.Ordinal))
+                if (json.Contains("\"autoPaste\": true", StringComparison.Ordinal)
+                    || json.Contains("\"AutoPaste\": true", StringComparison.Ordinal))
                 {
                     return;
                 }

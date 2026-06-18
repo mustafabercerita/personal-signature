@@ -267,4 +267,59 @@ final class SignatureManagerTests: XCTestCase {
             .filter { $0.lastPathComponent.hasSuffix(".tmp.png") }
         XCTAssertTrue(tempFiles.isEmpty, "Temp PNG files should be cleaned up after save")
     }
+
+    @MainActor
+    func testReadsWindowsStylePascalCaseJSON() throws {
+        let id = UUID()
+        let pascalCaseJSON = """
+        {
+          "Items": [
+            { "Id": "\(id.uuidString)", "Filename": "windows.png", "Name": "Windows" }
+          ],
+          "ActiveID": "\(id.uuidString)",
+          "Settings": {
+            "LaunchAtLogin": false,
+            "AutoPaste": true,
+            "RemoveBackground": false
+          }
+        }
+        """
+        try pascalCaseJSON.write(
+            to: testDirectory.appendingPathComponent("index.json"),
+            atomically: true,
+            encoding: .utf8
+        )
+        _ = try makePNGFile(named: "windows.png")
+
+        let store = SignatureStore(storageDirectory: testDirectory)
+        let result = store.load()
+
+        XCTAssertEqual(result.signatures.count, 1)
+        XCTAssertEqual(result.signatures.first?.0.id, id)
+        XCTAssertEqual(store.loadActiveID(), id)
+
+        let settings = try XCTUnwrap(store.loadSettings())
+        XCTAssertTrue(settings.autoPaste)
+        XCTAssertFalse(settings.removeBackground)
+    }
+
+    @MainActor
+    func testSettingsRoundTripInIndexJson() throws {
+        manager.autoPaste = false
+        manager.removeBackground = false
+
+        let url = try makePNGFile()
+        try manager.saveSignature(from: url)
+
+        let reloaded = SignatureManager(store: SignatureStore(storageDirectory: testDirectory))
+        XCTAssertFalse(reloaded.autoPaste)
+        XCTAssertFalse(reloaded.removeBackground)
+
+        let indexData = try Data(contentsOf: testDirectory.appendingPathComponent("index.json"))
+        let json = String(data: indexData, encoding: .utf8) ?? ""
+        XCTAssertTrue(json.contains("\"settings\""))
+        XCTAssertTrue(json.contains("\"autoPaste\":false") || json.contains("\"autoPaste\": false"))
+        XCTAssertTrue(json.contains("\"removeBackground\":false") || json.contains("\"removeBackground\": false"))
+        XCTAssertTrue(json.contains("\"launchAtLogin\""))
+    }
 }

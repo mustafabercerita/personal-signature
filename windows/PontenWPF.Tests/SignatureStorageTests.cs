@@ -145,6 +145,71 @@ namespace PontenWPF.Tests
         }
 
         [Fact]
+        public void SaveIndex_WritesCamelCaseJson()
+        {
+            var storage = new SignatureStorage(_testDirectory);
+            var item = new SignatureItem { Id = Guid.NewGuid(), Filename = "camel.png", Name = "Camel" };
+            File.WriteAllText(Path.Combine(_testDirectory, "camel.png"), "dummy content");
+
+            storage.AddSignature(item);
+            storage.Settings.AutoPaste = true;
+            storage.Settings.RemoveBackground = false;
+            storage.SaveIndex();
+
+            var json = File.ReadAllText(_indexPath);
+            Assert.Contains("\"items\"", json, StringComparison.Ordinal);
+            Assert.Contains("\"activeID\"", json, StringComparison.Ordinal);
+            Assert.Contains("\"settings\"", json, StringComparison.Ordinal);
+            Assert.Contains("\"autoPaste\"", json, StringComparison.Ordinal);
+            Assert.Contains("\"removeBackground\"", json, StringComparison.Ordinal);
+            Assert.DoesNotContain("\"Items\"", json, StringComparison.Ordinal);
+            Assert.DoesNotContain("\"ActiveID\"", json, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Load_ReadsLegacyPascalCaseJson()
+        {
+            var id = Guid.NewGuid();
+            var legacyJson = $$"""
+            {
+              "Items": [
+                { "Id": "{{id}}", "Filename": "legacy.png", "Name": "Legacy" }
+              ],
+              "ActiveID": "{{id}}",
+              "Settings": {
+                "LaunchAtLogin": false,
+                "AutoPaste": true,
+                "RemoveBackground": true
+              }
+            }
+            """;
+            File.WriteAllText(_indexPath, legacyJson);
+            File.WriteAllText(Path.Combine(_testDirectory, "legacy.png"), "dummy content");
+
+            var storage = new SignatureStorage(_testDirectory);
+
+            Assert.Single(storage.Signatures);
+            Assert.Equal(id, storage.ActiveSignatureID);
+            Assert.True(storage.Settings.AutoPaste);
+            Assert.True(storage.Settings.RemoveBackground);
+        }
+
+        [Fact]
+        public void Settings_RoundTripInIndexJson()
+        {
+            var storage = new SignatureStorage(_testDirectory);
+            storage.Settings.AutoPaste = false;
+            storage.Settings.LaunchAtLogin = true;
+            storage.Settings.RemoveBackground = false;
+            storage.SaveIndex();
+
+            var reloaded = new SignatureStorage(_testDirectory);
+            Assert.False(reloaded.Settings.AutoPaste);
+            Assert.True(reloaded.Settings.LaunchAtLogin);
+            Assert.False(reloaded.Settings.RemoveBackground);
+        }
+
+        [Fact]
         public void UserSettings_Toggles()
         {
             var storage = new SignatureStorage(_testDirectory);

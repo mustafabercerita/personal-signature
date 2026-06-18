@@ -22,7 +22,7 @@ enum ShortcutChoice: Int, CaseIterable, Identifiable {
 /// Persists and vends signature images.
 final class SignatureManager: ObservableObject {
 
-    private static let settingsDefaults: UserDefaults = {
+    static let settingsDefaults: UserDefaults = {
         if let suiteName = E2EMode.userDefaultsSuiteName,
            let defaults = UserDefaults(suiteName: suiteName) {
             return defaults
@@ -103,7 +103,6 @@ final class SignatureManager: ObservableObject {
 
     @Published var launchAtLogin: Bool = false
 
-    @Published var showDrawingSheet: Bool = false
     @Published var globalShortcut: ShortcutChoice = {
         ShortcutChoice(rawValue: SignatureManager.settingsDefaults.integer(forKey: "GlobalShortcut")) ?? .optCmdS
     }() {
@@ -129,7 +128,7 @@ final class SignatureManager: ObservableObject {
     init(store: SignatureStore = SignatureStore(storageDirectory: SignatureStore.defaultStorageDirectory())) {
         self.store = store
         loadSignatures()
-        loadLaunchAtLoginState()
+        loadSettingsFromIndex()
     }
 
     // MARK: - Load
@@ -143,26 +142,56 @@ final class SignatureManager: ObservableObject {
             let noun = result.prunedCount == 1 ? "signature" : "signatures"
             showToast("\(result.prunedCount) \(noun) removed — image file(s) missing")
         }
+    }
 
-        if E2EMode.isEnabled, let settings = store.loadSettings() {
-            autoPaste = settings.autoPaste
-        }
+    private func currentSettings() -> UserSettings {
+        UserSettings(
+            autoPaste: autoPaste,
+            launchAtLogin: launchAtLogin,
+            removeBackground: removeBackground
+        )
     }
 
     @discardableResult
     private func saveIndex() -> Bool {
         let items = signatures.map { $0.item }
-        let settings = E2EMode.isEnabled ? UserSettings(autoPaste: autoPaste) : nil
         do {
-            try store.saveIndex(items: items, activeID: activeSignatureID, settings: settings)
+            try store.saveIndex(items: items, activeID: activeSignatureID, settings: currentSettings())
             return true
         } catch {
-            showToast("Failed to save signatures: \(error.localizedDescription)")
+            showToast(StorageError.userFacingMessage(for: error, fallbackPrefix: "Failed to save signatures"))
             return false
         }
     }
 
-    private func loadLaunchAtLoginState() {
+    private func loadSettingsFromIndex() {
+        guard let settings = store.loadSettings() else {
+            loadLaunchAtLoginFromSystem()
+            return
+        }
+
+        autoPaste = settings.autoPaste
+        SignatureManager.settingsDefaults.set(autoPaste, forKey: "AutoPasteEnabled")
+        removeBackground = settings.removeBackground
+
+        if E2EMode.isEnabled {
+            launchAtLogin = settings.launchAtLogin
+            return
+        }
+
+        if #available(macOS 13.0, *) {
+            let systemEnabled = SMAppService.mainApp.status == .enabled
+            if settings.launchAtLogin != systemEnabled {
+                setLaunchAtLogin(settings.launchAtLogin)
+            } else {
+                launchAtLogin = settings.launchAtLogin
+            }
+        } else {
+            launchAtLogin = settings.launchAtLogin
+        }
+    }
+
+    private func loadLaunchAtLoginFromSystem() {
         guard !E2EMode.isEnabled else { return }
         if #available(macOS 13.0, *) {
             launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -188,8 +217,12 @@ final class SignatureManager: ObservableObject {
     func saveSignature(image sourceImage: NSImage, removeBackground: Bool = false, vectorize: Bool = false, overwriteID: UUID? = nil) throws {
         var img = sourceImage
 
-        if vectorize, let vectorImg = img.replacingWithVectorizedStroke() {
-            img = vectorImg
+        if vectorize {
+            if let vectorImg = img.replacingWithVectorizedStroke() {
+                img = vectorImg
+            } else {
+                showToast("Vectorization failed — saved without cleanup.")
+            }
         } else if removeBackground, let processed = img.removingWhiteBackground() {
             img = processed
         }
@@ -243,7 +276,7 @@ final class SignatureManager: ObservableObject {
             signatures = previousSignatures
             activeSignatureID = previousActiveID
             store.deleteFile(filename: tempFilename)
-            showToast("Failed to save signature file: \(error.localizedDescription)")
+            showToast(StorageError.userFacingMessage(for: error, fallbackPrefix: "Failed to save signature file"))
             throw SignatureError.encodingFailed
         }
     }
@@ -305,14 +338,20 @@ final class SignatureManager: ObservableObject {
     }
 
     func importURL(_ url: URL) {
-        if let image = NSImage(contentsOf: url) {
-            DispatchQueue.main.async {
-                self.acceptImportedImage(image)
-            }
-        } else {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer {
+            if accessed { url.stopAccessingSecurityScopedResource() }
+        }
+
+        guard let image = NSImage(contentsOf: url) else {
             DispatchQueue.main.async {
                 self.errorMessage = SignatureError.invalidImage.localizedDescription
             }
+            return
+        }
+
+        DispatchQueue.main.async {
+            self.acceptImportedImage(image)
         }
     }
 

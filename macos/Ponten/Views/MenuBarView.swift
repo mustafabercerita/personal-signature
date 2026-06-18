@@ -5,7 +5,12 @@ import UniformTypeIdentifiers
 struct MenuBarView: View {
     @EnvironmentObject private var manager: SignatureManager
 
-    @State private var showDrawing = false
+    private var showDrawing: Binding<Bool> {
+        Binding(
+            get: { manager.isDrawingSheetOpen },
+            set: { manager.isDrawingSheetOpen = $0 }
+        )
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -16,9 +21,9 @@ struct MenuBarView: View {
 
                 Group {
                     if !manager.signatures.isEmpty {
-                        SignatureActiveView(showDrawing: $showDrawing)
+                        SignatureActiveView(showDrawing: showDrawing)
                     } else {
-                        EmptyStateView(showDrawing: $showDrawing)
+                        EmptyStateView(showDrawing: showDrawing)
                     }
                 }
                 .animation(.easeInOut(duration: 0.2), value: !manager.signatures.isEmpty)
@@ -43,8 +48,7 @@ struct MenuBarView: View {
                     )
             }
         }
-        .onChange(of: showDrawing) { manager.isDrawingSheetOpen = $0 }
-        .sheet(isPresented: $showDrawing) {
+        .sheet(isPresented: showDrawing) {
             DrawingView()
                 .environmentObject(manager)
         }

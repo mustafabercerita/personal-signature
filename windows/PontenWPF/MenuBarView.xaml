@@ -137,8 +137,13 @@
                           Checked="AutoPasteCheck_Changed" Unchecked="AutoPasteCheck_Changed"/>
                 
                 <Grid Margin="0,5,0,0">
-                    <TextBlock Text="Global Shortcut" Foreground="LightGray" VerticalAlignment="Center"/>
-                    <TextBlock Text="Shortcut: Ctrl+Alt+S" Foreground="#888888" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Global Shortcut" Foreground="LightGray" VerticalAlignment="Center"/>
+                    <ComboBox x:Name="GlobalShortcutCombo" Grid.Column="1" Width="110" FontSize="11"
+                              SelectionChanged="GlobalShortcutCombo_SelectionChanged"/>
                 </Grid>
             </StackPanel>
             
@@ -155,9 +160,11 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <Button Grid.Column="0" Content="Check for Updates" Foreground="LightGray" Background="Transparent" BorderThickness="0" HorizontalAlignment="Left" Click="CheckUpdates_Click"/>
-                    <Button Grid.Column="1" Content="Quit" Foreground="LightGray" Background="Transparent" BorderThickness="0" HorizontalAlignment="Right" Click="Quit_Click"/>
+                    <Button Grid.Column="1" Content="ℹ" Foreground="LightGray" Background="Transparent" BorderThickness="0" HorizontalAlignment="Right" Margin="0,0,8,0" Click="About_Click" ToolTip="About Ponten"/>
+                    <Button Grid.Column="2" Content="Quit" Foreground="LightGray" Background="Transparent" BorderThickness="0" HorizontalAlignment="Right" Click="Quit_Click"/>
                 </Grid>
             </Grid>
         </Grid>

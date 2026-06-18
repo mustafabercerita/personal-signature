@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace PontenWPF
@@ -19,6 +20,7 @@ namespace PontenWPF
         public bool LaunchAtLogin { get; set; } = false;
         public bool AutoPaste { get; set; } = true;
         public bool RemoveBackground { get; set; } = true;
+        public int GlobalShortcut { get; set; } = (int)ShortcutChoice.CtrlAltS;
     }
 
     public class IndexWrapper
@@ -219,7 +221,7 @@ namespace PontenWPF
             }
             catch (Exception ex)
             {
-                App.Log($"Failed to save index.json: {ex.Message}");
+                App.Log(StorageError.UserFacingMessage(ex, "Failed to save index.json"));
             }
         }
 
