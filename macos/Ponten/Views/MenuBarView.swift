@@ -43,6 +43,7 @@ struct MenuBarView: View {
                     )
             }
         }
+        .onChange(of: showDrawing) { manager.isDrawingSheetOpen = $0 }
         .sheet(isPresented: $showDrawing) {
             DrawingView()
                 .environmentObject(manager)

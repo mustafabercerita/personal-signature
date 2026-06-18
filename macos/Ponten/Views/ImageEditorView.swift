@@ -164,23 +164,29 @@ struct ImageEditorView: View {
     
     private func updatePreview() {
         previewUpdateTask?.cancel()
-        
+
         let currentContrast = contrast
         let currentBrightness = brightness
         let currentThicken = thicken
         let currentRotation = rotation
         let currentAutoTrim = autoTrim
         let currentRemoveBg = removeBackground
-        
+
+        guard let snapshotCGImage = sourceImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            previewImage = nil
+            return
+        }
+        let snapshotSize = sourceImage.size
+
         previewUpdateTask = Task {
             // Debounce 0.1 seconds
             try? await Task.sleep(nanoseconds: 100_000_000)
             guard !Task.isCancelled else { return }
-            
+
             await MainActor.run { isProcessingPreview = true }
-            
+
             let finalImg = await Task.detached(priority: .userInitiated) { () -> NSImage? in
-                var img = sourceImage
+                var img = NSImage(cgImage: snapshotCGImage, size: snapshotSize)
                 
                 // 0. Thicken Lines
                 if currentThicken > 0 {

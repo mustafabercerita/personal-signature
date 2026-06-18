@@ -209,7 +209,7 @@ extension NSImage {
     }
 
     func hasPredominantlyWhiteOrTransparentEdges() -> Bool {
-        guard let cgImage = self.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return true }
+        guard let cgImage = self.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return false }
 
         let width = cgImage.width
         let height = cgImage.height
@@ -228,7 +228,7 @@ extension NSImage {
                                 space: colorSpace,
                                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
 
-        guard let ctx = context else { return true }
+        guard let ctx = context else { return false }
         ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)))
 
         var edgePixelCount = 0

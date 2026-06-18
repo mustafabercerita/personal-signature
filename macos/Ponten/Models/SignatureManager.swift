@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import Foundation
 import ServiceManagement
 import UniformTypeIdentifiers
@@ -57,6 +58,21 @@ final class SignatureManager: ObservableObject {
     @Published var pendingImageToEdit: NSImage? = nil
     @Published var pendingEditSignatureID: UUID? = nil
 
+    @Published var isFileDialogOpen = false
+    @Published var isDrawingSheetOpen = false
+    @Published var isDeleteDialogOpen = false
+    @Published var isRenameDialogOpen = false
+
+    var isModalPresented: Bool {
+        isFileDialogOpen
+            || isDrawingSheetOpen
+            || pendingImageToEdit != nil
+            || isDeleteDialogOpen
+            || isRenameDialogOpen
+    }
+
+    var onToastOutsidePopover: ((String) -> Void)?
+
     @Published var showWhiteCanvas: Bool = {
         let defaults = SignatureManager.settingsDefaults
         return defaults.object(forKey: "ShowWhiteCanvas") == nil ? true : defaults.bool(forKey: "ShowWhiteCanvas")
@@ -67,16 +83,27 @@ final class SignatureManager: ObservableObject {
     }
 
     @Published var autoPaste: Bool = {
-        SignatureManager.settingsDefaults.bool(forKey: "AutoPasteEnabled")
+        let defaults = SignatureManager.settingsDefaults
+        if defaults.object(forKey: "AutoPasteEnabled") == nil {
+            return true
+        }
+        return defaults.bool(forKey: "AutoPasteEnabled")
     }() {
         didSet {
             SignatureManager.settingsDefaults.set(autoPaste, forKey: "AutoPasteEnabled")
-            if E2EMode.isEnabled {
-                saveIndex()
-            }
+            saveIndex()
         }
     }
+
+    @Published var removeBackground: Bool = true {
+        didSet {
+            saveIndex()
+        }
+    }
+
     @Published var launchAtLogin: Bool = false
+
+    @Published var showDrawingSheet: Bool = false
     @Published var globalShortcut: ShortcutChoice = {
         ShortcutChoice(rawValue: SignatureManager.settingsDefaults.integer(forKey: "GlobalShortcut")) ?? .optCmdS
     }() {
@@ -108,21 +135,30 @@ final class SignatureManager: ObservableObject {
     // MARK: - Load
 
     private func loadSignatures() {
-        signatures = store.load()
+        let result = store.load()
+        signatures = result.signatures
         activeSignatureID = store.loadActiveID() ?? signatures.first?.0.id
+
+        if result.prunedCount > 0 {
+            let noun = result.prunedCount == 1 ? "signature" : "signatures"
+            showToast("\(result.prunedCount) \(noun) removed — image file(s) missing")
+        }
 
         if E2EMode.isEnabled, let settings = store.loadSettings() {
             autoPaste = settings.autoPaste
         }
     }
 
-    private func saveIndex() {
+    @discardableResult
+    private func saveIndex() -> Bool {
         let items = signatures.map { $0.item }
         let settings = E2EMode.isEnabled ? UserSettings(autoPaste: autoPaste) : nil
         do {
             try store.saveIndex(items: items, activeID: activeSignatureID, settings: settings)
+            return true
         } catch {
             showToast("Failed to save signatures: \(error.localizedDescription)")
+            return false
         }
     }
 
@@ -175,9 +211,12 @@ final class SignatureManager: ObservableObject {
         let existingItem = signatures.first(where: { $0.item.id == targetID })?.item
 
         let filename = existingItem?.filename ?? "\(targetID.uuidString).png"
-        try store.writePNG(data: pngData, filename: filename)
+        let tempFilename = "\(targetID.uuidString).tmp.png"
+        try store.writePNG(data: pngData, filename: tempFilename)
 
         let item = SignatureItem(id: targetID, filename: filename, name: existingItem?.name)
+        let previousSignatures = signatures
+        let previousActiveID = activeSignatureID
 
         if isOverwriting {
             if let idx = signatures.firstIndex(where: { $0.item.id == targetID }) {
@@ -190,12 +229,26 @@ final class SignatureManager: ObservableObject {
         if activeSignatureID != targetID {
             activeSignatureID = targetID
         }
-        saveIndex()
+
+        guard saveIndex() else {
+            signatures = previousSignatures
+            activeSignatureID = previousActiveID
+            store.deleteFile(filename: tempFilename)
+            throw SignatureError.encodingFailed
+        }
+
+        do {
+            try store.commitPNG(tempFilename: tempFilename, finalFilename: filename)
+        } catch {
+            signatures = previousSignatures
+            activeSignatureID = previousActiveID
+            store.deleteFile(filename: tempFilename)
+            showToast("Failed to save signature file: \(error.localizedDescription)")
+            throw SignatureError.encodingFailed
+        }
     }
 
     // MARK: - File Picker
-
-    @Published var isFileDialogOpen = false
 
     @MainActor
     func openFilePicker() {
@@ -272,6 +325,15 @@ final class SignatureManager: ObservableObject {
         }
     }
 
+    // MARK: - Active Signature
+
+    func selectActiveSignature(id: UUID) {
+        guard signatures.contains(where: { $0.item.id == id }) else { return }
+        guard activeSignatureID != id else { return }
+        activeSignatureID = id
+        saveIndex()
+    }
+
     // MARK: - Copy to Clipboard
 
     @discardableResult
@@ -322,6 +384,11 @@ final class SignatureManager: ObservableObject {
     // MARK: - Auto-Paste
 
     func pasteToActiveApp() {
+        guard AXIsProcessTrusted() else {
+            showToast("Enable Accessibility access in System Settings to auto-paste.")
+            return
+        }
+
         let src = CGEventSource(stateID: .hidSystemState)
 
         let cmdDown = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: true)
@@ -337,19 +404,20 @@ final class SignatureManager: ObservableObject {
     // MARK: - Signatures Management
 
     func renameSignature(id: UUID, newName: String) {
-        if let index = signatures.firstIndex(where: { $0.0.id == id }) {
-            signatures[index].0.name = newName
-            saveIndex()
-        }
+        guard let index = signatures.firstIndex(where: { $0.0.id == id }) else { return }
+        var updated = signatures[index]
+        updated.item.name = newName
+        signatures[index] = updated
+        saveIndex()
     }
 
     func deleteSignature(id targetID: UUID? = nil) {
         guard let id = targetID ?? activeSignatureID else { return }
-        let deletedActiveSignature = activeSignatureID == id
+        guard let itemToRemove = signatures.first(where: { $0.item.id == id })?.item else { return }
 
-        if let itemToRemove = signatures.first(where: { $0.item.id == id })?.item {
-            store.deleteFile(filename: itemToRemove.filename)
-        }
+        let previousSignatures = signatures
+        let previousActiveID = activeSignatureID
+        let deletedActiveSignature = activeSignatureID == id
 
         signatures.removeAll { $0.item.id == id }
         if signatures.isEmpty {
@@ -357,7 +425,14 @@ final class SignatureManager: ObservableObject {
         } else if deletedActiveSignature, let first = signatures.first {
             activeSignatureID = first.item.id
         }
-        saveIndex()
+
+        guard saveIndex() else {
+            signatures = previousSignatures
+            activeSignatureID = previousActiveID
+            return
+        }
+
+        store.deleteFile(filename: itemToRemove.filename)
     }
 
     // MARK: - Launch at Login
@@ -373,6 +448,7 @@ final class SignatureManager: ObservableObject {
             }
             DispatchQueue.main.async { [weak self] in
                 self?.launchAtLogin = enabled
+                self?.saveIndex()
             }
         } catch {
             showToast("Could not change login item: \(error.localizedDescription)")
@@ -387,6 +463,7 @@ final class SignatureManager: ObservableObject {
         let presentToast = { [weak self] in
             guard let self else { return }
             self.toastMessage = message
+            self.onToastOutsidePopover?(message)
             let timer = Timer(timeInterval: duration, repeats: false) { [weak self] _ in
                 self?.toastMessage = nil
             }

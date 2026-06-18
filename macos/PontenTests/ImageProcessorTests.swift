@@ -22,6 +22,11 @@ final class ImageProcessorTests: XCTestCase {
         XCTAssertTrue(result.size.width > size.width, "Padding should be added")
     }
 
+    func testHasPredominantlyWhiteEdgesFailsClosedOnInvalidImage() {
+        let image = NSImage(size: .zero)
+        XCTAssertFalse(image.hasPredominantlyWhiteOrTransparentEdges())
+    }
+
     func testAutoTrimWhitespace() {
         let size = CGSize(width: 100, height: 100)
         let image = NSImage(size: size)

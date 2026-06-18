@@ -130,6 +130,7 @@ struct SignatureActiveView: View {
             .padding(.horizontal, 18)
             .padding(.bottom, 14)
         }
+        .onChange(of: showDeleteConfirm) { manager.isDeleteDialogOpen = $0 }
         .confirmationDialog(
             "Remove Signature?",
             isPresented: $showDeleteConfirm,
@@ -142,6 +143,7 @@ struct SignatureActiveView: View {
         } message: {
             Text("This will permanently delete your saved signature.")
         }
+        .onChange(of: showRenameAlert) { manager.isRenameDialogOpen = $0 }
         .alert("Rename Signature", isPresented: $showRenameAlert) {
             TextField("Signature Name", text: $newSignatureName)
             Button("Cancel", role: .cancel) {}
@@ -165,7 +167,7 @@ struct SignatureCardView: View {
 
     var body: some View {
         Button(action: {
-            manager.activeSignatureID = sig.item.id
+            manager.selectActiveSignature(id: sig.item.id)
             manager.copySignatureToClipboard()
         }) {
             VStack(spacing: 4) {
@@ -194,7 +196,7 @@ struct SignatureCardView: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier(sig.item.name ?? "Signature")
+        .accessibilityIdentifier(sig.item.id.uuidString)
         .accessibilityLabel(sig.item.name ?? "Signature")
         .contextMenu {
             Button("Edit") {

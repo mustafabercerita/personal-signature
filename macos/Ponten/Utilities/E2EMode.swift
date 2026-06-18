@@ -11,8 +11,10 @@ enum E2EMode {
         return false
     }
 
-    /// Isolated storage directory from env `PONTEN_DATA_DIR` or `--data-dir` CLI args.
+    /// Isolated storage directory from env `PONTEN_DATA_DIR` or `--data-dir` CLI args (E2E only).
     static var dataDirectory: URL? {
+        guard isEnabled else { return nil }
+
         if let env = ProcessInfo.processInfo.environment["PONTEN_DATA_DIR"],
            !env.isEmpty {
             return URL(fileURLWithPath: env, isDirectory: true)

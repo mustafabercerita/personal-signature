@@ -3,18 +3,19 @@ import Carbon
 
 final class GlobalShortcutManager {
     static let shared = GlobalShortcutManager()
-    
+
     private var hotKeyRef: EventHotKeyRef?
     var action: (() -> Void)?
-    
+    var onRegistrationFailure: ((String) -> Void)?
+
     private init() {
         guard !E2EMode.isEnabled else { return }
         setupHotKey()
     }
-    
+
     private func setupHotKey() {
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
-        
+
         let handler: EventHandlerUPP = { (_, event, _) -> OSStatus in
             var hotKeyID = EventHotKeyID()
             let status = GetEventParameter(
@@ -26,7 +27,7 @@ final class GlobalShortcutManager {
                 nil,
                 &hotKeyID
             )
-            
+
             if status == noErr && hotKeyID.signature == OSType(1) {
                 DispatchQueue.main.async {
                     GlobalShortcutManager.shared.action?()
@@ -34,20 +35,20 @@ final class GlobalShortcutManager {
             }
             return noErr
         }
-        
+
         InstallEventHandler(GetApplicationEventTarget(), handler, 1, &eventType, nil, nil)
-        
-        // Initialize from UserDefaults
+
         let saved = UserDefaults.standard.integer(forKey: "GlobalShortcut")
-        updateShortcut(ShortcutChoice(rawValue: saved) ?? .optCmdS)
+        _ = updateShortcut(ShortcutChoice(rawValue: saved) ?? .optCmdS)
     }
-    
-    func updateShortcut(_ choice: ShortcutChoice) {
+
+    @discardableResult
+    func updateShortcut(_ choice: ShortcutChoice) -> OSStatus {
         if let ref = hotKeyRef {
             UnregisterEventHotKey(ref)
             hotKeyRef = nil
         }
-        
+
         let keyCode: UInt32 = 0x01 // S
         var modifiers: UInt32 = 0
         switch choice {
@@ -55,11 +56,22 @@ final class GlobalShortcutManager {
         case .ctrlCmdS: modifiers = UInt32(cmdKey | controlKey)
         case .shiftCmdS: modifiers = UInt32(cmdKey | shiftKey)
         }
-        
+
         var hotKeyID = EventHotKeyID()
         hotKeyID.signature = OSType(1)
         hotKeyID.id = UInt32(1)
-        
-        RegisterEventHotKey(keyCode, modifiers, hotKeyID, GetApplicationEventTarget(), 0, &hotKeyRef)
+
+        let status = RegisterEventHotKey(keyCode, modifiers, hotKeyID, GetApplicationEventTarget(), 0, &hotKeyRef)
+        if status != noErr {
+            onRegistrationFailure?("Could not register \(choice.description) — another app may be using it.")
+        }
+        return status
+    }
+
+    func unregister() {
+        if let ref = hotKeyRef {
+            UnregisterEventHotKey(ref)
+            hotKeyRef = nil
+        }
     }
 }

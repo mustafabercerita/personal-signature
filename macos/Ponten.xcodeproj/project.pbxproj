@@ -14,6 +14,7 @@
 		171BB0EA90A4FC55C5FD3537 /* ImageEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C7628AF5738F410268B6B01 /* ImageEditorView.swift */; };
 		1AE52752D98500F6A6B32593 /* MenuBarUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A77A281BC3A931ECE543803 /* MenuBarUITests.swift */; };
 		269A0BC2654FAB21D9956828 /* EventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F006 /* EventMonitor.swift */; };
+		4A8C2E1F9B3D5A7C8E0F1D2A /* MenuBarToastPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B9D3F2A8C4E6B0D9F1E2C3B /* MenuBarToastPresenter.swift */; };
 		2D67FA73A28F07F1C18E11FA /* SignatureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F003 /* SignatureManager.swift */; };
 		3F0F2EB29D34BBF310950D33 /* GlobalShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4636EB3E58AA004A68B3DE2 /* GlobalShortcutManager.swift */; };
 		472D05B59AD328CEBC0EC3E0 /* FooterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39AA7F404CE26C6EFA1DED02 /* FooterView.swift */; };
@@ -88,6 +89,7 @@
 		F004 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		F005 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		F006 /* EventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventMonitor.swift; sourceTree = "<group>"; };
+		5B9D3F2A8C4E6B0D9F1E2C3B /* MenuBarToastPresenter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MenuBarToastPresenter.swift; sourceTree = "<group>"; };
 		F007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F008 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F009 /* Ponten.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ponten.entitlements; sourceTree = "<group>"; };
@@ -223,6 +225,7 @@
 			isa = PBXGroup;
 			children = (
 				F006 /* EventMonitor.swift */,
+				5B9D3F2A8C4E6B0D9F1E2C3B /* MenuBarToastPresenter.swift */,
 				C4636EB3E58AA004A68B3DE2 /* GlobalShortcutManager.swift */,
 				F012 /* E2EMode.swift */,
 			);
@@ -440,6 +443,7 @@
 				171BB0EA90A4FC55C5FD3537 /* ImageEditorView.swift in Sources */,
 				C1D6B0461FDDF1E5F9E1EDB1 /* ImageProcessor.swift in Sources */,
 				1120A2BBD5F5CDEF342B0263 /* GlobalShortcutManager.swift in Sources */,
+				4A8C2E1F9B3D5A7C8E0F1D2A /* MenuBarToastPresenter.swift in Sources */,
 				C5E489EB5810162538BA0D6C /* SignatureStore.swift in Sources */,
 				A008 /* E2EMode.swift in Sources */,
 			);
@@ -465,6 +469,7 @@
 				E49D5E26ADC30A1F4FC34350 /* ImageProcessor.swift in Sources */,
 				8464BC4936E5F56B14EB1D27 /* SignatureStore.swift in Sources */,
 				269A0BC2654FAB21D9956828 /* EventMonitor.swift in Sources */,
+				4A8C2E1F9B3D5A7C8E0F1D2A /* MenuBarToastPresenter.swift in Sources */,
 				3F0F2EB29D34BBF310950D33 /* GlobalShortcutManager.swift in Sources */,
 				993D8590F2331BA628E196BE /* E2EMode.swift in Sources */,
 				FBAD4D2511EBCBFD5F62F8A7 /* E2EMenuPanelView.swift in Sources */,

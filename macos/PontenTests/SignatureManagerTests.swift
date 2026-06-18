@@ -134,7 +134,7 @@ final class SignatureManagerTests: XCTestCase {
         let activeID = try XCTUnwrap(manager.activeSignatureID)
 
         XCTAssertEqual(testStore.loadActiveID(), activeID)
-        XCTAssertEqual(testStore.load().count, 1)
+        XCTAssertEqual(testStore.load().signatures.count, 1)
     }
 
     @MainActor
@@ -147,11 +147,25 @@ final class SignatureManagerTests: XCTestCase {
         _ = try makePNGFile(named: "exists.png")
 
         let reloadedStore = SignatureStore(storageDirectory: testDirectory)
-        let loaded = reloadedStore.load()
+        let result = reloadedStore.load()
 
-        XCTAssertEqual(loaded.count, 1)
-        XCTAssertEqual(loaded.first?.0.id, existingID)
+        XCTAssertEqual(result.signatures.count, 1)
+        XCTAssertEqual(result.prunedCount, 1)
+        XCTAssertEqual(result.signatures.first?.0.id, existingID)
         XCTAssertEqual(reloadedStore.loadActiveID(), existingID)
+    }
+
+    @MainActor
+    func testLoadShowsToastWhenPNGsMissing() throws {
+        let existingID = UUID()
+        let missingID = UUID()
+        let existingItem = SignatureItem(id: existingID, filename: "exists.png")
+        let missingItem = SignatureItem(id: missingID, filename: "missing.png")
+        try testStore.saveIndex(items: [existingItem, missingItem], activeID: missingID)
+        _ = try makePNGFile(named: "exists.png")
+
+        let reloadedManager = SignatureManager(store: SignatureStore(storageDirectory: testDirectory))
+        XCTAssertEqual(reloadedManager.toastMessage, "1 signature removed — image file(s) missing")
     }
 
     @MainActor
@@ -170,5 +184,87 @@ final class SignatureManagerTests: XCTestCase {
 
         XCTAssertEqual(manager.activeSignatureID, activeID)
         XCTAssertNotNil(manager.signatureImage)
+    }
+
+    @MainActor
+    func testSelectActiveSignaturePersistsToIndex() throws {
+        let url1 = try makePNGFile(named: "sig1.png")
+        let url2 = try makePNGFile(named: "sig2.png")
+
+        try manager.saveSignature(from: url1)
+        let firstID = try XCTUnwrap(manager.activeSignatureID)
+
+        try manager.saveSignature(from: url2)
+        let secondID = try XCTUnwrap(manager.activeSignatureID)
+        XCTAssertNotEqual(firstID, secondID)
+
+        manager.selectActiveSignature(id: firstID)
+        XCTAssertEqual(manager.activeSignatureID, firstID)
+        XCTAssertEqual(testStore.loadActiveID(), firstID)
+    }
+
+    @MainActor
+    func testCorruptIndexRebuildsFromPNGFiles() throws {
+        let id = UUID()
+        let filename = "\(id.uuidString).png"
+        _ = try makePNGFile(named: filename)
+        try "not json".write(to: testDirectory.appendingPathComponent("index.json"), atomically: true, encoding: .utf8)
+
+        let reloadedStore = SignatureStore(storageDirectory: testDirectory)
+        let result = reloadedStore.load()
+
+        XCTAssertEqual(result.signatures.count, 1)
+        XCTAssertEqual(result.signatures.first?.0.id, id)
+        XCTAssertEqual(reloadedStore.loadActiveID(), id)
+    }
+
+    @MainActor
+    func testMissingIndexUsesLegacyMigration() throws {
+        _ = try makePNGFile(named: "signature.png")
+
+        let reloadedStore = SignatureStore(storageDirectory: testDirectory)
+        let result = reloadedStore.load()
+
+        XCTAssertEqual(result.signatures.count, 1)
+        XCTAssertEqual(result.signatures.first?.0.filename, "signature.png")
+        XCTAssertNotNil(reloadedStore.loadActiveID())
+    }
+
+    @MainActor
+    func testRenameSignatureUpdatesPublishedState() throws {
+        let url = try makePNGFile()
+        try manager.saveSignature(from: url)
+        let id = try XCTUnwrap(manager.activeSignatureID)
+
+        manager.renameSignature(id: id, newName: "Work Sig")
+
+        XCTAssertEqual(manager.signatures.first?.item.name, "Work Sig")
+    }
+
+    @MainActor
+    func testDeleteRemovesFileAfterIndexSave() throws {
+        let url = try makePNGFile()
+        try manager.saveSignature(from: url)
+        let id = try XCTUnwrap(manager.activeSignatureID)
+        let filename = try XCTUnwrap(manager.signatures.first?.item.filename)
+        let filePath = testDirectory.appendingPathComponent(filename)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: filePath.path))
+
+        manager.deleteSignature(id: id)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: filePath.path))
+        XCTAssertEqual(testStore.load().signatures.count, 0)
+    }
+
+    @MainActor
+    func testSaveWritesTempFileThenCommitsFinalPNG() throws {
+        let url = try makePNGFile()
+        try manager.saveSignature(from: url)
+        let filename = try XCTUnwrap(manager.signatures.first?.item.filename)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: testDirectory.appendingPathComponent(filename).path))
+        let tempFiles = try FileManager.default.contentsOfDirectory(at: testDirectory, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.hasSuffix(".tmp.png") }
+        XCTAssertTrue(tempFiles.isEmpty, "Temp PNG files should be cleaned up after save")
     }
 }
