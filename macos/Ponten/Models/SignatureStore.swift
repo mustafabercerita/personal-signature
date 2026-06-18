@@ -8,9 +8,22 @@ struct SignatureItem: Codable, Identifiable, Equatable {
 }
 
 struct UserSettings: Codable, Equatable {
-    var autoPaste: Bool = true
-    var launchAtLogin: Bool = false
-    var removeBackground: Bool = true
+    var autoPaste: Bool
+    var launchAtLogin: Bool
+    var removeBackground: Bool
+
+    init(autoPaste: Bool = true, launchAtLogin: Bool = false, removeBackground: Bool = true) {
+        self.autoPaste = autoPaste
+        self.launchAtLogin = launchAtLogin
+        self.removeBackground = removeBackground
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        autoPaste = try container.decodeIfPresent(Bool.self, forKey: .autoPaste) ?? true
+        launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? false
+        removeBackground = try container.decodeIfPresent(Bool.self, forKey: .removeBackground) ?? true
+    }
 }
 
 struct IndexWrapper: Codable {

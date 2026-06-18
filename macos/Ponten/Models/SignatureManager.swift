@@ -91,12 +91,14 @@ final class SignatureManager: ObservableObject {
     }() {
         didSet {
             SignatureManager.settingsDefaults.set(autoPaste, forKey: "AutoPasteEnabled")
+            guard !isLoadingSettings else { return }
             saveIndex()
         }
     }
 
     @Published var removeBackground: Bool = true {
         didSet {
+            guard !isLoadingSettings else { return }
             saveIndex()
         }
     }
@@ -114,6 +116,7 @@ final class SignatureManager: ObservableObject {
 
     private var toastTimer: Timer?
     var toastDuration: TimeInterval = 2.5
+    private var isLoadingSettings = false
 
     // MARK: - Storage
 
@@ -169,6 +172,9 @@ final class SignatureManager: ObservableObject {
             loadLaunchAtLoginFromSystem()
             return
         }
+
+        isLoadingSettings = true
+        defer { isLoadingSettings = false }
 
         autoPaste = settings.autoPaste
         SignatureManager.settingsDefaults.set(autoPaste, forKey: "AutoPasteEnabled")

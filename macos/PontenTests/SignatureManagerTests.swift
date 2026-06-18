@@ -335,6 +335,35 @@ final class SignatureManagerTests: XCTestCase {
     }
 
     @MainActor
+    func testLoadsIndexWithPartialSettingsLikeUITestSeed() throws {
+        let id = UUID()
+        let filename = "\(id.uuidString).png"
+        let partialSettingsJSON = """
+        {
+          "activeID": "\(id.uuidString)",
+          "items": [
+            { "id": "\(id.uuidString)", "filename": "\(filename)", "name": "E2E Signature" }
+          ],
+          "settings": { "autoPaste": false }
+        }
+        """
+        try partialSettingsJSON.write(
+            to: testDirectory.appendingPathComponent("index.json"),
+            atomically: true,
+            encoding: .utf8
+        )
+        _ = try makePNGFile(named: filename)
+
+        let store = SignatureStore(storageDirectory: testDirectory)
+        let result = store.load()
+
+        XCTAssertEqual(result.signatures.count, 1)
+        XCTAssertEqual(result.signatures.first?.0.name, "E2E Signature")
+        XCTAssertEqual(store.loadSettings()?.autoPaste, false)
+        XCTAssertEqual(store.loadSettings()?.launchAtLogin, false)
+        XCTAssertEqual(store.loadSettings()?.removeBackground, true)
+    }
+
     func testSettingsRoundTripInIndexJson() throws {
         manager.autoPaste = false
         manager.removeBackground = false
